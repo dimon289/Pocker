@@ -1,0 +1,88 @@
+.userPage{
+    display: flex;
+    width: 100%;
+    flex-direction: row;
+}
+.imageBox{
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.imageBox img {
+    width: 300px;
+    height: 300px;
+    overflow:hidden;
+    object-fit: cover;
+}
+.formInput{
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+    background-color: #4a4a4a;
+    border-radius: 10px;
+    width: 50%;
+    height: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.formInput * {
+    width: 50%;
+    height: 60px;
+    margin: 10px;
+    padding: 10px;
+}
+button{
+    background-color: #4a4a4a;
+    color: rgb(246, 232, 216);
+    font-weight: 600;
+    height: 30px;
+    border-radius: 5px;
+    box-shadow: none;
+}
+.name {
+    min-width: 60vw;
+    display: flex;
+}
+.name h1{
+    margin: 10px;
+    text-align: left;
+}
+.name button{
+    margin: 15px;
+    text-align: left;
+}
+.name input{
+    margin: 10px;
+    height: 30px;
+    width: 80%;
+    left: 0;
+    text-align: left;
+}
+.description{
+    min-width: 60vw;
+    display: flex;
+    flex-direction: column;
+}
+.description textarea{
+    text-align: left;
+    /* text-align: left; */
+    height: 400px;
+    width: 100%;
+}
+.description button{
+    margin: 10px;
+    width:fit-content;
+}
+.description h2{
+    display: block;
+    margin: 10px;
+    height: auto;
+    text-align: left;
+    word-wrap: break-word;
+    white-space: normal;
+    overflow: hidden;
+}
