@@ -73,7 +73,7 @@ model users {
   id          Int      @id @default(autoincrement())
   email       String   @unique
   password    String
-  mybalance     Decimal? @default(0) @db.Decimal(10, 2)
+  mybalance   Decimal? @default(0) @db.Decimal(10, 2)
   nickname    String   @unique
   avatar      Bytes?
   description String?
