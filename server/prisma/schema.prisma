@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model balance {
+  id          Int     @id @default(autoincrement())
+  stepid      Int     @unique
+  userid      Int     @unique
+  balancetype Boolean @default(false)
+  bet         Int     @default(0)
+  step        step    @relation(fields: [stepid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users       users   @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model chats {
+  id       Int   @id @default(autoincrement())
+  usersid  Int[]
+  messages Json? @default("[]")
+}
+
+model players {
+  id                               Int      @id @default(autoincrement())
+  userid                           Int      @unique
+  cards                            String[] @db.Char(2)
+  roomid                           Int      @unique
+  status                           Boolean  @default(false)
+  room                             room     @relation(fields: [roomid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                            users    @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  step_step_next_playeridToplayers step?    @relation("step_next_playeridToplayers")
+  step_step_playeridToplayers      step?    @relation("step_playeridToplayers")
+}
+
+model pocker {
+  id        Int      @id @default(autoincrement())
+  roomid    Int      @unique
+  playersid Int[]
+  cards     String[] @db.Char(2)
+  bank      Int      @default(0)
+  room      room     @relation(fields: [roomid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  step      step?
+}
+
+model room {
+  id       Int        @id @default(autoincrement())
+  name     String
+  password String?
+  usersid  Int[]
+  status   roomstatus
+  players  players?
+  pocker   pocker?
+}
+
+model step {
+  id                                  Int      @id @default(autoincrement())
+  pockerid                            Int      @unique
+  playerid                            Int      @unique
+  bet                                 Int      @default(0)
+  next_playerid                       Int      @unique
+  maxbet                              Decimal  @default(0) @db.Decimal(12, 2)
+  steptype                            steptype
+  balance                             balance?
+  players_step_next_playeridToplayers players  @relation("step_next_playeridToplayers", fields: [next_playerid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  players_step_playeridToplayers      players  @relation("step_playeridToplayers", fields: [playerid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  pocker                              pocker   @relation(fields: [pockerid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model users {
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
+  password    String
+  mybalance     Decimal? @default(0) @db.Decimal(10, 2)
+  nickname    String   @unique
+  avatar      Bytes?
+  description String?
+  friends     Int[]    @default([])
+  chatsid     Int[]    @default([])
+  status      Boolean? @default(false)
+  balance     balance?
+  players     players?
+}
+
+enum roomstatus {
+  Waiting
+  Playing
+  Full
+}
+
+enum steptype {
+  Check
+  Call
+  Raise
+  Fold
+  Bet
+  End
+}
