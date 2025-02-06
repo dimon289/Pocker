@@ -1,7 +1,7 @@
 import {Link} from "react-router-dom"
 import { useState } from "react";
 import { useSelector , useDispatch } from "react-redux";
-import { changeName, changeAvatar, changeDescription, increaseBalance } from "../../User/userSlice";
+import { changeName, changeAvatar, changeDescription} from "../../Slices/userSlice";
 import { RootState } from "../../Store";
 import "./style.css"
 
@@ -18,7 +18,7 @@ function User(){
     const [redactDescription, setRedactDescription] = useState<boolean>(false)
     const [inputDescription, setinputDescription] = useState<string>("");
 
-    const balance = useSelector((state:RootState) => state.user.balance)
+    // const balance = useSelector((state:RootState) => state.user.balance)
 
 
     const imageURL = useSelector((state:RootState) => state.user.avatar)
@@ -27,9 +27,6 @@ function User(){
 
     const toggleFormVisibility = () => {
         setisVisibleInputIMGForm(prevState => !prevState);
-    };
-    const handleChangeImage = () => {
-        dispatch(changeAvatar(inputURL)); 
     };
     return(     
     <div className="userPage">
@@ -78,6 +75,14 @@ function User(){
                 }}>Submit</button>
             </div>)}
         </div>  
+        <div className="LogOut">
+            <Link to={"/"}>
+                <button onClick={()=>
+                {dispatch(changeName(""))
+                dispatch(changeDescription(""))
+                }}>Log out</button>
+            </Link>
+        </div>
     </div>
 )}
 export default User;
