@@ -1,0 +1,21 @@
+.Registre{
+    padding: 10px;
+    display:flex;
+    flex-direction: column;
+    text-align: left;
+    gap: 20px;
+    background-color: rgb(57, 54, 54);
+}
+.Registre p{
+
+    margin: 0;
+    padding: 0;
+}
+.Registre input{
+    height: 30px;
+    width: 300px;
+}
+
+.error {
+    color: red;
+}

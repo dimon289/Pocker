@@ -86,3 +86,8 @@ button{
     white-space: normal;
     overflow: hidden;
 }
+.LogOut{
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+}
