@@ -1,6 +1,8 @@
-import { Controller, Get, Body, Post, ValidationPipe, UsePipes } from '@nestjs/common';
-import { UserService } from 'src/User/user.service';
+
+import { Controller, Get, Body, Post, ValidationPipe, UsePipes, Query } from '@nestjs/common';
+import { UserService } from './user.service';
 import { CreateUserDto } from 'src/User/user.dto';
+import { query } from 'express';
 
 @Controller('user')
 export class UserController {
@@ -9,6 +11,11 @@ export class UserController {
   @Get()
   findAll() {
     return this.userService.findAll();
+  }
+
+  @Get('email')
+  findEmail(@Query("email") email: string){
+    return this.userService.findEmail(email);
   }
 
   @Post()
