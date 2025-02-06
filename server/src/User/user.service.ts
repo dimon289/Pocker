@@ -7,13 +7,45 @@ import * as bcrypt from 'bcrypt';
 export class UserService {
     constructor(private readonly prisma:PrismaService){}
 
+    async findAll() {
+        try {
+            const users = await this.prisma.users.findMany();
+            return users;
+        } catch (error) {
+            console.error("Помилка підключення до БД:", error);
+            throw new Error("Не вдалося отримати користувачів");
+        }
+    }
+
+    async findName(name: string){
+        try {
+            const user = await this.prisma.users.findFirst({where: { nickname: name }});
+            return user || false;
+        } catch (error) {
+            console.error("Помилка при пошуку name:", error);
+            throw new Error("Не вдалося отримати користувача");
+        }
+    }
+
     async findEmail(email: string) {
         try {
-            return await this.prisma.users.findFirst({where: { email: email }}) || null; 
+            const user = await this.prisma.users.findFirst({where: { email: email }});
+            return user || false;
         } catch (error) {
             console.error("Помилка при пошуку email:", error);
             throw new Error("Не вдалося отримати користувача");
         }
+    }
+
+    async createUser(dto: CreateUserDto) {
+        const hashedPassword = await bcrypt.hash(dto.password, 1);
+        return this.prisma.users.create({
+            data: {
+                nickname: dto.nickname,
+                email: dto.email,
+                password: hashedPassword, // Зберігаємо лише хеш
+            },
+        });
     }
 
     async Auth(email: string, password: string) {
@@ -32,27 +64,6 @@ export class UserService {
             console.error("Помилка при авторизації");
             throw new Error("Не вдалося авторизуватися");
         }
-    }
-
-    async findAll() {
-        try {
-            const users = await this.prisma.users.findMany();
-            return users;
-        } catch (error) {
-            console.error("Помилка підключення до БД:", error);
-            throw new Error("Не вдалося отримати користувачів");
-        }
-    }
-
-    async createUser(dto: CreateUserDto) {
-        const hashedPassword = await bcrypt.hash(dto.password, 1);
-        return this.prisma.users.create({
-            data: {
-                nickname: dto.nickname,
-                email: dto.email,
-                password: hashedPassword, // Зберігаємо лише хеш
-            },
-        });
     }
 
     async DeleteUser(email: string, password: string): Promise<boolean> {

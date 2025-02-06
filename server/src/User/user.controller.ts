@@ -19,8 +19,13 @@ export class UserController {
     return this.userService.findEmail(email);
   }
 
+  @Get('name')
+  findName(@Query('name') name: string){
+    return this.userService.findName(name)
+  }
+
   @Get('auth')
-  async Auth(@Query('email') email: string, @Query('password') password: string) {
+  Auth(@Query('email') email: string, @Query('password') password: string) {
     
 
     return this.userService.Auth(email, password);
