@@ -20,9 +20,9 @@ export class UserController {
 
   @Get('auth')
   async Auth(@Query('email') email: string, @Query('password') password: string) {
-    this.userService.Auth(email, password)
+    
 
-    return { success: true, message: 'Authentication successful' };
+    return this.userService.Auth(email, password);
   }
 
   @Post()
