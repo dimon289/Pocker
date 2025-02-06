@@ -26,8 +26,6 @@ export class UserController {
 
   @Get('auth')
   Auth(@Query('email') email: string, @Query('password') password: string) {
-    
-
     return this.userService.Auth(email, password);
   }
 

@@ -56,14 +56,24 @@ function Register(){
         {error.length !== 0 && <p className="error">{error}</p>}
         <button onClick={async() => {
             if (ValideteAllInputs()){
-                const IsUniqueUser = await axios({
+                const IsUniqueEmail = await axios({
                     method:"get",
-                    url:`http://${url}/api/user`,
+                    url:`http://localhost:3210/api/user/email?email=${email}`,
                 })
-                if(){
+                const IsUniqueName = await axios({
+                    method:"get",
+                    url:`http://localhost:3210/api/user/name?name=${nickName}`,
+                })
+                if(!IsUniqueEmail){
+                    setError("Ваш Email уже зареєстровано")
+                }
+                else if(!IsUniqueName){
+                    setError("Ваш NickName уже зареєстровано")
+                }
+                else{
                     await axios({
                         method:"post",
-                        url:`http://${url}/api/user`,
+                        url:`http://localhost:3210/api/user`,
                         data:{
                             "nickname" : nickName,
                             "email" : email,
