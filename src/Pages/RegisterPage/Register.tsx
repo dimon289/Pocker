@@ -1,11 +1,12 @@
-import {Link} from "react-router-dom"
+import {Link, useNavigate} from "react-router-dom"
 import { useState } from "react";
-import { useSelector , useDispatch } from "react-redux";
+import { useSelector} from "react-redux";
 import { RootState } from "../../Store";
 import axios from 'axios';
 import "./style.css"
 
 function Register(){
+    const navigate = useNavigate();
     const url = useSelector((state:RootState) => {state.server.serverURL})
     const [nickName, setNickName] = useState<string>("");
     const [email, setemail] = useState<string>("");
@@ -55,15 +56,26 @@ function Register(){
         {error.length !== 0 && <p className="error">{error}</p>}
         <button onClick={async() => {
             if (ValideteAllInputs()){
-                await axios({
-                    method:"post",
-                    url:`http://localhost:3210/api/user`,
-                    data:{
-                        "nickname" : nickName,
-                        "email" : email,
-                        "password" : password
-                    }
-                }).then((e) => {console.log("ABOBA " + e)})
+                const IsUniqueUser = await axios({
+                    method:"get",
+                    url:`http://${url}/api/user`,
+                })
+                if(){
+                    await axios({
+                        method:"post",
+                        url:`http://${url}/api/user`,
+                        data:{
+                            "nickname" : nickName,
+                            "email" : email,
+                            "password" : password
+                        }
+                        
+                    }).then((e) => {console.log("ABOBA " + e)
+                        navigate("/Login");
+                    })
+                    .catch(() => {setError("Не вдалось зареєстуватись")})
+                }
+
             }
         } }>Submit</button>
     </div>
