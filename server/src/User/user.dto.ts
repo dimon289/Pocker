@@ -1,4 +1,5 @@
 import { IsEmail, IsString } from 'class-validator';
+import * as bcrypt from 'bcrypt';
 
 export class CreateUserDto {
     @IsString()

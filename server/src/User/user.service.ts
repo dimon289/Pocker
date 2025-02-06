@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { CreateUserDto } from 'src/User/user.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
@@ -15,11 +16,20 @@ export class UserService {
         }
     }
 
-    async findPassword(password: string) {
+    async Auth(email: string, password: string) {
         try {
-            return await this.prisma.users.findFirst({where: { password: password }})?true:false ; 
+            const user = await this.prisma.users.findUnique({
+                where: { email }
+            });
+            if (!user) {
+                throw new Error('Користувача з такою електронною скринькою не знайдено');
+            }
+
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            return isPasswordValid;
+
         } catch (error) {
-            console.error("Помилка при пошуку паролю:", error);
+            console.error("Помилка при авторизації");
             throw new Error("Не вдалося авторизуватися");
         }
     }
@@ -34,10 +44,35 @@ export class UserService {
         }
     }
 
-    create(dto: CreateUserDto){
+    async createUser(dto: CreateUserDto) {
+        const hashedPassword = await bcrypt.hash(dto.password, 1);
         return this.prisma.users.create({
-            data:dto,
-        })
+            data: {
+                nickname: dto.nickname,
+                email: dto.email,
+                password: hashedPassword, // Зберігаємо лише хеш
+            },
+        });
     }
 
+    async DeleteUser(email: string, password: string): Promise<boolean> {
+        const user = await this.prisma.users.findUnique({
+            where: { email }
+        });
+    
+        if (!user) {
+            throw new Error('Користувача не знайдено');
+        }
+    
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            throw new Error('Невірний пароль');
+        }
+    
+        await this.prisma.users.delete({
+            where: { email }
+        });
+    
+        return true;
+    }
 }
