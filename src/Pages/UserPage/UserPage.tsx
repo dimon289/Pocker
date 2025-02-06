@@ -18,7 +18,7 @@ function User(){
     const [redactDescription, setRedactDescription] = useState<boolean>(false)
     const [inputDescription, setinputDescription] = useState<string>("");
 
-    // const balance = useSelector((state:RootState) => state.user.balance)
+    const balance = useSelector((state:RootState) => state.user.balance)
 
 
     const imageURL = useSelector((state:RootState) => state.user.avatar)
