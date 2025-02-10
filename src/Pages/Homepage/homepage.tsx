@@ -10,11 +10,12 @@ import axios from "axios";
 function home(){
     const dispatch = useDispatch();
     const name = useSelector((state:RootState) => state.user.userName);
-    const balance = useSelector((state:RootState) => state.user.balance);
+    let balance = useSelector((state:RootState) => state.user.balance);
     
     useEffect(() => {
         const email = localStorage.getItem("email");
         const password = localStorage.getItem("password");
+
 
         if (email && password) {
             const fetchUserData = async () => {
@@ -26,7 +27,6 @@ function home(){
                     if (user.data.avatar == null) {
                         user.data.avatar = "";
                     }
-                    console.log(user, " ", user.data.nickname);
 
                     dispatch(changeName(user.data.nickname));
                     dispatch(changeEmail(user.data.email));
@@ -47,7 +47,12 @@ function home(){
         <header>    
             
             <div className="user"><Link to="User">{name}</Link></div>
-            <div className="balance">{(balance*100).toLocaleString('en-US',{style:"currency",currency:"USD"})}</div>
+            <div className="balance">{balance.toLocaleString('en-US', {
+                                                            style: 'currency',
+                                                            currency: 'USD',
+                                                            minimumFractionDigits: 2, // кількість знаків після коми
+                                                            maximumFractionDigits: 2, // обмежуємо до 2 знаків
+                                                            })}</div>
         </header>:
         <header>
             <div><Link to="/Register">Registre</Link></div>

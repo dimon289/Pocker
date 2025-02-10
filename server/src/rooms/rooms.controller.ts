@@ -6,15 +6,15 @@ import { CreateRoomDto } from './rooms.dto';
 export class RoomsController {
   constructor(private readonly roomsService: RoomsService) {}
 
-  @Post()
-  @UsePipes(new ValidationPipe())
-  create(@Body() dto: CreateRoomDto) {
-    return this.roomsService.createRoom(dto);
-  }
+  // @Post()
+  // @UsePipes(new ValidationPipe())
+  // create(@Body() dto: CreateRoomDto) {
+  //   return this.roomsService.createRoom(dto);
+  // }
 
-  @Get()
-  findsRooms(){
-    return this.roomsService.findsRooms();
-  }
+  // @Get()
+  // findsRooms(){
+  //   return this.roomsService.findsRooms();
+  // }
 
 }

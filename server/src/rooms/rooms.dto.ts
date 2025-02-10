@@ -1,8 +1,14 @@
 import { IsString, IsOptional, IsEnum, IsArray } from 'class-validator';
-import { roomstatus } from '@prisma/client';
 
+
+export enum RoomStatus {
+    Waiting = 'Waiting',
+    Playing = 'Playing',
+    Full = 'Full',
+}
 
 export class CreateRoomDto {
+    
     @IsString()
     name: string;
 
@@ -13,15 +19,15 @@ export class CreateRoomDto {
     @IsArray()
     usersid: number[];
 
-    @IsEnum(roomstatus)
-    status: roomstatus;
+    @IsEnum(RoomStatus)
+    status: RoomStatus;
 }
 
 export class PatchRoomDto {
     @IsArray()
     usersid?: number[];
 
-    @IsEnum(roomstatus)
-    status?: roomstatus;
+    @IsEnum(RoomStatus)
+    status?: RoomStatus;
 }
 export type TUpdateRoomDto = Partial<CreateRoomDto>
