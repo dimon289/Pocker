@@ -81,11 +81,10 @@ function Register(){
                         }
                         
                     }).then((e) => {console.log("ABOBA " + e)
-                        navigate("/Login");
+                        navigate("/");
                     })
                     .catch(() => {setError("Не вдалось зареєстуватись")})
                 }
-
             }
         } }>Submit</button>
     </div>

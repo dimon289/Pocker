@@ -27,7 +27,7 @@ const userSlice = createSlice({
         },
         decreaseBalance(state, action){
             state.balance -= action.payload 
-        }
+        },
     }
 })
 export const {changeName, changeAvatar, changeDescription, changeEmail, increaseBalance, decreaseBalance} = userSlice.actions
