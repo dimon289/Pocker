@@ -1,5 +1,4 @@
-import { IsEmail, IsString } from 'class-validator';
-import * as bcrypt from 'bcrypt';
+import { IsEmail, IsOptional, IsString, IsBoolean, IsDecimal, IsArray } from 'class-validator';
 
 export class CreateUserDto {
     @IsString()
@@ -12,5 +11,36 @@ export class CreateUserDto {
     password: string;
 }
 
+export class UpdateUserDto {
+    @IsOptional()
+    @IsString()
+    nickname?: string;
 
-export type TUpdateUserDto = Partial<CreateUserDto>
+    @IsOptional()
+    @IsEmail()
+    email?: string;
+
+    @IsOptional()
+    @IsString()
+    password?: string;
+
+    @IsOptional()
+    @IsDecimal()
+    mybalance?: number;
+
+    @IsOptional()
+    @IsString()
+    description?: string;
+
+    @IsOptional()
+    @IsArray()
+    friends?: number[];
+
+    @IsOptional()
+    @IsArray()
+    chatsid?: number[];
+
+    @IsOptional()
+    @IsBoolean()
+    status?: boolean;
+}
