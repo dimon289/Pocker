@@ -1,9 +1,6 @@
-
-import { Controller, Get, Body, Post, ValidationPipe, UsePipes, Query, BadRequestException, UnauthorizedException, Delete } from '@nestjs/common';
+import { Controller, Get, Body, Post, Patch, Query, Delete, UsePipes, ValidationPipe, BadRequestException } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserDto } from 'src/User/user.dto';
-import { query } from 'express';
-import * as bcrypt from 'bcrypt';
+import { CreateUserDto, UpdateUserDto } from 'src/User/user.dto';
 
 @Controller('user')
 export class UserController {
@@ -33,6 +30,15 @@ export class UserController {
   @UsePipes(new ValidationPipe())
   create(@Body() dto: CreateUserDto) {
     return this.userService.createUser(dto);
+  }
+
+  @Patch()
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  async updateUser(@Query('email') email: string, @Body() dto: UpdateUserDto) {
+    if (!email) {
+      throw new BadRequestException('Потрібно передати email користувача');
+    }
+    return this.userService.updateUser(email, dto);
   }
 
   @Delete()
