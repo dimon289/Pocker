@@ -1,13 +1,13 @@
-import {Link, useNavigate} from "react-router-dom"
+import { useNavigate} from "react-router-dom"
 import { useState } from "react";
-import { useSelector} from "react-redux";
-import { RootState } from "../../Store";
+// import { useSelector} from "react-redux";
+// import { RootState } from "../../Store";
 import axios from 'axios';
 import "./style.css"
 
 function Register(){
     const navigate = useNavigate();
-    const url = useSelector((state:RootState) => {state.server.serverURL})
+    // const url = useSelector((state:RootState) => {state.server.serverURL})
     const [nickName, setNickName] = useState<string>("");
     const [email, setemail] = useState<string>("");
     const [password, setpassword] = useState<string>("");

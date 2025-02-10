@@ -17,4 +17,11 @@ export class CreateRoomDto {
     status: roomstatus;
 }
 
+export class PatchRoomDto {
+    @IsArray()
+    usersid?: number[];
+
+    @IsEnum(roomstatus)
+    status?: roomstatus;
+}
 export type TUpdateRoomDto = Partial<CreateRoomDto>
