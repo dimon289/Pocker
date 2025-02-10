@@ -86,8 +86,13 @@ button{
     white-space: normal;
     overflow: hidden;
 }
-.LogOut{
+.LogOutandDelete{
     position: absolute;
+    display: flex;
     right: 20px;
     bottom: 20px;
+    gap: 10px;
+}
+.delete{
+    background-color: red;
 }
