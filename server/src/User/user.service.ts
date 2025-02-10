@@ -43,7 +43,8 @@ export class UserService {
             data: {
                 nickname: dto.nickname,
                 email: dto.email,
-                password: hashedPassword, // Зберігаємо лише хеш
+                password: hashedPassword,
+                avatar: null
             },
         });
     }

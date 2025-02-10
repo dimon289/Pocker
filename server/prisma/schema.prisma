@@ -75,7 +75,7 @@ model users {
   password    String
   mybalance   Decimal? @default(0) @db.Decimal(10, 2)
   nickname    String   @unique
-  avatar      Bytes?
+  avatar      String?
   description String?
   friends     Int[]    @default([])
   chatsid     Int[]    @default([])
