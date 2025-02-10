@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
-import { CreateUserDto } from 'src/User/user.dto';
+import { CreateUserDto, UpdateUserDto } from 'src/User/user.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -64,6 +64,25 @@ export class UserService {
             console.error("Помилка при авторизації");
             throw new Error("Не вдалося авторизуватися");
         }
+    }
+
+    async updateUser(email: string, data: UpdateUserDto) {
+        const user = await this.prisma.users.findUnique({
+            where: { email },
+        });
+
+        if (!user) {
+            throw new BadRequestException('Користувача не знайдено');
+        }
+
+        if (data.password) {
+            data.password = await bcrypt.hash(data.password, 10);
+        }
+
+        return await this.prisma.users.update({
+            where: { email },
+            data,
+        });
     }
 
     async DeleteUser(email: string, password: string): Promise<boolean> {
