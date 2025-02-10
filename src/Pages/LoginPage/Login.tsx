@@ -1,15 +1,14 @@
 import {useNavigate} from "react-router-dom"
 import { useState } from "react";
-import { useSelector, useDispatch} from "react-redux";
+import { useDispatch} from "react-redux";
 import {changeName, changeAvatar, changeDescription, changeEmail, increaseBalance} from "../../Slices/userSlice";
-import { RootState } from "../../Store";
+
 import axios from 'axios';
 import "./style.css"
 
 function Login(){
 
 
-    const url = useSelector((state:RootState) => {state.server.serverURL})
     const navigate = useNavigate();
     
     const [email, setemail] = useState<string>("");

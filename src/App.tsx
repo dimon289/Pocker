@@ -4,7 +4,8 @@ import {
   HomePage,
   UserPage,
   RegisterPage,
-  LoginPage
+  LoginPage,
+  LobbyPage
 } from "./Pages"
 
 const router = createBrowserRouter([
@@ -15,6 +16,10 @@ const router = createBrowserRouter([
       {
         path:"User",
         element:<UserPage/>
+      },
+      {
+        path:"Lobbys",
+        element:<LobbyPage/>
       }
     ]
   },

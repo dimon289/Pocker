@@ -1,5 +1,5 @@
 import {Link, useNavigate} from "react-router-dom"
-import { useState, useEffect } from "react";
+import { useState} from "react";
 import { useSelector , useDispatch } from "react-redux";
 import { changeName, changeAvatar, changeDescription} from "../../Slices/userSlice";
 import { RootState } from "../../Store";
@@ -21,7 +21,7 @@ function User(){
     const [redactDescription, setRedactDescription] = useState<boolean>(false)
     const [inputDescription, setinputDescription] = useState<string>("");
 
-    const balance = useSelector((state:RootState) => state.user.balance)
+    // const balance = useSelector((state:RootState) => state.user.balance)
 
 
     const imageURL = useSelector((state:RootState) => state.user.avatar)

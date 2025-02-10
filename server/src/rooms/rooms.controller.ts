@@ -12,5 +12,9 @@ export class RoomsController {
     return this.roomsService.createRoom(dto);
   }
 
+  @Get()
+  findsRooms(){
+    return this.roomsService.findsRooms();
+  }
 
 }
