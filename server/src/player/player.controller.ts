@@ -16,7 +16,7 @@ export class PlayerController {
     async getPlayerByUserId(@Param('userid') userid: number) {
       return this.playerService.getPlayerByUserId(userid);
     }
-  
+      
     @Patch(':userid')
     async updatePlayer(@Param('userid') userid: number, @Body() data: UpdatePlayerDto) {
       return this.playerService.updatePlayer(userid, data);

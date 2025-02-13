@@ -1,16 +1,48 @@
 import { useState } from "react";
 import "./style.css";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function CreateRoom() {
+    const navigete = useNavigate();
     const [roomName, setRoomName] = useState("");
     const [roomPassword, setRoomPassword] = useState("");
+    const [errmesage, seterrmessage] = useState<String>("")
 
     const submitCreateRoom = async () => {
-        const user = axios({
+        const user = await axios({
             method:"get",
-            
+            url: `http://localhost:3210/api/user/email?email=${localStorage.getItem("email")}`
         })
+        const userid = (await user).data.id;
+        if (roomName.length == 0){
+            seterrmessage("Ви не ввели назву кімнати")
+        }
+        else{
+            const room = await axios({
+                method:"post",
+                url:`http://localhost:3210/api/rooms`,
+                data:{
+                    name:  roomName,
+                    usersid: [userid],
+                    status: "Waiting",
+                    password : roomPassword,
+                }
+            })
+            localStorage.setItem("roomid",room.data.id)
+            localStorage.setItem("roompassword",roomPassword)
+            const player = await axios({
+                method: "post",
+                url : `http://localhost:3210/api/player`,
+                data: {
+                    userid: userid,
+                    roomid: room.data.id,
+                    cards: ["00", "00"]
+                }
+            })
+            console.log(player)
+            navigete("/")
+        }
     };
 
     return (
@@ -35,7 +67,10 @@ function CreateRoom() {
                         onChange={(e) => setRoomPassword(e.target.value)}
                     />
                 </div>
-
+                {
+                    errmesage.length !== 0 &&
+                    <p>{errmesage}</p> 
+                }
                 <button
                     onClick={submitCreateRoom}
                     className="w-full py-2 mt-4 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-md transition-transform transform hover:scale-105 flex items-center justify-center "

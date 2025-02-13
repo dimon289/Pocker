@@ -1,6 +1,6 @@
-import { Controller, Get, Body, Post, ValidationPipe, UsePipes, Query, BadRequestException, UnauthorizedException, Delete } from '@nestjs/common';
+import { Controller, Get, Body, Post, ValidationPipe, UsePipes, Query, BadRequestException, UnauthorizedException, Delete, Patch } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
-import { CreateRoomDto } from './rooms.dto';
+import { CreateRoomDto, PatchRoomDto } from './rooms.dto';
 
 @Controller('rooms')
 export class RoomsController {
@@ -16,5 +16,13 @@ export class RoomsController {
   findsRooms(){
     return this.roomsService.findsRooms();
   }
+  @Get('id')
+  findroombyid(@Query("id") id:number){
+    return this.roomsService.findsRoombyid(id);
+  }
 
+  @Patch()
+  updateRooms(@Query("id")id:number, @Query("password")password:string,@Body() dto:PatchRoomDto ){
+    return this.roomsService.updateRooms(id,password,dto)
+  }
 }

@@ -8,35 +8,34 @@ export class PlayerService {
     constructor(private readonly prisma:PrismaService){}
     async createPlayer(data: CreatePlayerDto) {
         return this.prisma.players.create({
-          data: {
-            userid: data.userid,
-            cards: data.cards,
-            roomid: data.roomid,
-            status: data.status,
-          },
+            data: {
+                userid: data.userid,
+                cards: data.cards,
+                roomid: data.roomid,
+            },
         });
-      }
+        }
 
-      async getPlayerByUserId(userid: number) {
+    async getPlayerByUserId(userid: number) {
         const player = await this.prisma.players.findUnique({
-          where: { userid },
+            where: { userid },
         });
         if (!player) {
-          throw new NotFoundException('Player not found');
+            throw new NotFoundException('Player not found');
         }
         return player;
-      }
+    }
     
-      async updatePlayer(userid: number, data: UpdatePlayerDto) {
+    async updatePlayer(userid: number, data: UpdatePlayerDto) {
         return this.prisma.players.update({
-          where: { userid },
-          data,
+            where: { userid },
+            data,
         });
-      }
+    }
     
-      async deletePlayer(userid: number) {
+        async deletePlayer(userid: number) {
         return this.prisma.players.delete({
-          where: { userid },
+            where: { userid },
         });
-      }
+    }
 }
