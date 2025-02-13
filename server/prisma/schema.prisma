@@ -27,7 +27,7 @@ model players {
   id                               Int      @id @default(autoincrement())
   userid                           Int      @unique
   cards                            String[] @db.Char(2)
-  roomid                           Int      @unique
+  roomid                           Int      
   status                           Boolean  @default(false)
   room                             room     @relation(fields: [roomid], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users                            users    @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -51,7 +51,7 @@ model room {
   password String?
   usersid  Int[]
   status   roomstatus
-  players  players?
+  players  players[]
   pocker   pocker?
 }
 
