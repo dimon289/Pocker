@@ -1,8 +1,17 @@
+import axios from "axios";
 import Room from "./Room";
+import { useEffect } from "react";
 
 
 export default function Lobbys() {
-
+    useEffect(() => {
+        const getRooms = async() =>{
+            const rooms = await axios({
+                method: "get",
+                url: `http://localhost:3210/api/room`
+            })
+        }
+    })
     const data =  [
         {
             id : 1,
