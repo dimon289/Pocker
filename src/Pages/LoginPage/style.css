@@ -1,19 +1,29 @@
-.Login{
+html, body {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.Login {
     padding: 10px;
-    display:flex;
+    display: flex;
     flex-direction: column;
     text-align: left;
     gap: 20px;
     background-color: rgb(57, 54, 54);
+    width: 400px; /* або будь-яка інша ширина */
 }
-.Registre p{
 
+.Login p {
     margin: 0;
     padding: 0;
 }
-.Registre input{
+
+.Login input {
     height: 30px;
-    width: 300px;
+    width: 100%;
 }
 
 .error {
