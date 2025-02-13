@@ -1,7 +1,33 @@
+import Room from "./Room";
 
 
-export default function main(){
+export default function Lobbys() {
+
+    const data =  [
+        {
+            id : 1,
+            name : "name",
+            status : "online",
+            usersid : ["1","2","3"],
+        },
+        {
+            id : 2,
+            name : "name2",
+            status : "online",
+            usersid : ["4","5","6"],
+        },
+
+    ]
+    const somefunc = ()=>{
+        console.log("ABOBA")
+    }
+
+
     return (
-        <div>Lobby</div>
-    )
+        <div className="flex flex-col items-center justify-center min-h-screen w-full overflow-y-auto p-5 lobby">
+            {data.map((i) => (
+                <Room key={i.id} data={i} connectionFunction={somefunc} />
+            ))}
+        </div>
+    );
 }

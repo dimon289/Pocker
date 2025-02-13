@@ -1,5 +1,5 @@
-header{
-    position:absolute;
+header {
+    position: fixed;
     top: 0;
     left: 0;
     background-color: #2e2e2e;
@@ -8,20 +8,74 @@ header{
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: end;
-    overflow-x: hidden;
-    overflow-y: hidden;
+    justify-content: space-between; /* між елементами простір */
+    padding: 0 20px; /* додано відступи з боків */
+    box-sizing: border-box;
+    z-index: 1000;
 }
 
-header div{
-    margin: 10px;
-    padding: 10px;
+header div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.user a{
+.user a, .balance, header a {
     color: white;
     font-weight: 700;
     text-decoration: none;
-    font-size: large;
+    font-size: 18px;
+    margin: 0 10px;
+    padding: 5px;
+    transition: color 0.3s ease;
 }
 
+.user a:hover, .balance:hover {
+    color: #ff9800;
+}
+
+.burger-menu {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    background-color: #2e2e2e;
+    gap: 15px;
+}
+.burger-menu nav {
+    background-color: #2e2e2e;
+    height: 60px;
+    margin: 0;
+    padding: 0;
+}
+
+/* Адаптація бургер-меню для великих екранів */
+.burger-menu button {
+    display: block;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+ul {
+    display: flex;
+    gap: 15px;
+    background-color: #373636;
+}
+
+ul li {
+    list-style: none;
+    background-color: #373636;
+}
+
+ul li a {
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+    padding: 10px;
+    background-color: #373636;
+    transition: background-color 0.3s ease;
+}
+
+ul li a:hover {
+    background-color: #ff9800;
+}

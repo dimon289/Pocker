@@ -1,19 +1,30 @@
-.Registre{
-    padding: 10px;
-    display:flex;
+html, body {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.Registre {
+    padding: 20px;
+    margin: 10px;
+    display: flex;
     flex-direction: column;
     text-align: left;
     gap: 20px;
     background-color: rgb(57, 54, 54);
 }
-.Registre p{
 
+.Registre p{
+    width: 100%;
     margin: 0;
     padding: 0;
 }
 .Registre input{
     height: 30px;
-    width: 300px;
+    width: 100%;
 }
 
 .error {
