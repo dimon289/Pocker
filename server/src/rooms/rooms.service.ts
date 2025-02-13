@@ -27,6 +27,17 @@ export class RoomsService {
         }
     }
 
+    
+    async findsRoombyid(id){
+        try {
+            const room = await this.prisma.room.findFirst({where:{id:id}});
+            return room;
+        } catch (error) {
+            console.error("Помилка підключення до БД:", error);
+            throw new Error("Не вдалося отримати Кімнату");
+        }
+    }
+
     async updateRooms(id:number, password:string,data:PatchRoomDto){
         try{
             const room = await this.prisma.room.findUnique({where:{id}})

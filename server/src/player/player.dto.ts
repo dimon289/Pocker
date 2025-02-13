@@ -13,8 +13,6 @@ export class CreatePlayerDto {
     @IsInt()
     roomid: number;
     
-    @IsBoolean()
-    status: boolean;
   }
 export type TCreatePlayerDto = Partial<CreatePlayerDto>
 
