@@ -11,10 +11,11 @@ interface RoomProps {
     };
     connectionFunction: () => void; 
 }
-function connectionFunction(){
-    
-}
+
 export default function Room({data}: RoomProps) {
+    const connectionFunction =()=>{
+        
+    }
     const navigate = useNavigate();
     const [isVisible, setIsVisible] = useState<Boolean>(false) 
     const [password, setpassword] = useState<String>("")

@@ -44,7 +44,6 @@ export class UserService {
                 nickname: dto.nickname,
                 email: dto.email,
                 password: hashedPassword,
-                avatar: null
             },
         });
     }
