@@ -9,6 +9,11 @@ export class CreateUserDto {
 
     @IsString()
     password: string;
+
+    @IsOptional()
+    @IsString()
+    avatar?:string
+
 }
 
 export class UpdateUserDto {

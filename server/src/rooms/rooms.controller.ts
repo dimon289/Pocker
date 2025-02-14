@@ -22,7 +22,12 @@ export class RoomsController {
   }
 
   @Patch()
-  updateRooms(@Query("id")id:number, @Query("password")password:string,@Body() dto:PatchRoomDto ){
-    return this.roomsService.updateRooms(id,password,dto)
+  updateRooms(@Query("id")id:string, @Query("password")password:string|null,@Body() dto:PatchRoomDto ){
+    return this.roomsService.updateRooms(parseInt(id), password ? password : null,dto)
+  }
+  
+  @Delete()
+  deleteRoom(@Query("id")id:string, @Query("password")password:string|null){
+    return this.roomsService.deleteRoom(parseInt(id), password ? password : null)
   }
 }
