@@ -25,6 +25,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.0.3",
     "@prisma/client": "^6.3.1",
     "axios": "^1.7.9",
     "bcrypt": "^5.1.1",
@@ -32,7 +33,9 @@
     "class-validator": "^0.14.1",
     "dotenv": "^16.4.7",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "swagger": "^0.7.5",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
