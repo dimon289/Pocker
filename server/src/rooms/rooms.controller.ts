@@ -1,4 +1,4 @@
-import { Controller, Get, Body, Post, ValidationPipe, UsePipes, Query, BadRequestException, UnauthorizedException, Delete, Patch } from '@nestjs/common';
+import { Controller, Get, Body, Post, ValidationPipe, UsePipes, Query, BadRequestException, UnauthorizedException, Delete, Patch, Param } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { CreateRoomDto, PatchRoomDto } from './rooms.dto';
 
@@ -21,10 +21,11 @@ export class RoomsController {
     return this.roomsService.findsRoombyid(id);
   }
 
-  @Patch()
-  updateRooms(@Query("id")id:string, @Query("password")password:string|null,@Body() dto:PatchRoomDto ){
-    return this.roomsService.updateRooms(parseInt(id), password ? password : null,dto)
+  @Patch(':id')
+  updateRooms(@Param("id") id: string, @Query("password") password: string | undefined, @Body() dto: PatchRoomDto) {
+    return this.roomsService.updateRooms(parseInt(id), password ?? null, dto);
   }
+
   
   @Delete()
   deleteRoom(@Query("id")id:string, @Query("password")password:string|null){

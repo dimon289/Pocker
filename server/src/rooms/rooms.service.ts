@@ -76,24 +76,24 @@ export class RoomsService {
         }
     }
 
-    @Cron('0 */1 * * * *')  
+    @Cron('0 0 0 * * *')  
     async checkEmptyRooms() {
-    try {
-        const rooms = await this.prisma.room.findMany({
-            where: {
-                players: { none: {} },  
-        },
-        });
+    // try {
+    //     const rooms = await this.prisma.room.findMany({
+    //         where: {
+    //             players: { none: {} },  
+    //     },
+    //     });
 
-        for (const room of rooms) {
-        await this.prisma.room.delete({
-            where: { id: room.id },
-        });
-        console.log(`Кімната ${room.id} була видалена, оскільки вона порожня.`);
-        }
-    } catch (error) {
-        console.error('Помилка при видаленні порожніх кімнат:', error);
-    }
+    //     for (const room of rooms) {
+    //     await this.prisma.room.delete({
+    //         where: { id: room.id },
+    //     });
+    //     console.log(`Кімната ${room.id} була видалена, оскільки вона порожня.`);
+    //     }
+    // } catch (error) {
+    //     console.error('Помилка при видаленні порожніх кімнат:', error);
+    // }
     }
 }
 

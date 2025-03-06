@@ -1,6 +1,9 @@
 import "./style.css";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { RootState } from "../../Store";
+import axios from "axios";
 
 interface RoomProps {
     data: {
@@ -9,12 +12,33 @@ interface RoomProps {
         usersid: string[];
         status: string; 
     };
-    connectionFunction: () => void; 
 }
 
 export default function Room({data}: RoomProps) {
-    const connectionFunction =()=>{
-        
+    const name = useSelector((state:RootState) => state.user.userName)
+    const connectToLobby = async()=>{
+        const roomsUsers = await axios({
+            method: "get", 
+            url: `http://localhost:3210/api/rooms?${localStorage.getItem("roomid")}`
+        }).then(response => {
+            return response.data[0]?.usersid;
+        });
+        const userid = await axios({
+            method: "get",
+            url: `http://localhost:3210/api/user/email?email=${localStorage.getItem("email")}`
+        }).then(response => response.data.id)  
+        await roomsUsers.push(userid) 
+        await axios({
+            method: "patch",
+            url: `http://localhost:3210/api/rooms/${localStorage.getItem("roomid")}`,
+            params: {
+                password: password.length !== 0 ? localStorage.getItem("roompassword") || password : undefined
+            },
+            data: {
+                usersid: roomsUsers,
+            }})
+                .then(response => console.log(response.data))
+                .catch(error => console.error(error));
     }
     const navigate = useNavigate();
     const [isVisible, setIsVisible] = useState<Boolean>(false) 
@@ -28,7 +52,7 @@ export default function Room({data}: RoomProps) {
                     <button onClick={() => {
                         localStorage.setItem("roomid",`${data.id}`)
                         localStorage.setItem("roompassword",`${password}`)
-                        navigate("/");
+                        connectToLobby()  
                     }}>Потдвердить</button>
                     <button onClick={() =>{
                         setIsVisible(false)
@@ -47,7 +71,7 @@ export default function Room({data}: RoomProps) {
                     ))}
                 </div>
             </div>
-            <button className="connect" onClick={() => {setIsVisible(true)}}>Connect</button>
+            {name.length !== 0 && <button className="connect" onClick={() => {setIsVisible(true)}}>Connect</button>}
         </div>
     );
 }

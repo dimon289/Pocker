@@ -36,7 +36,7 @@ function Home() {
                     dispatch(changeAvatar(user.data.avatar));
                 } catch (error) {
                     console.error("Error fetching user data:", error);
-                }
+                };
             };
             fetchUserData();
         }
