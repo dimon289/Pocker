@@ -5,7 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 ConfigModule.forRoot();
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {cors:true});
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: 'http://localhost:5173', 
