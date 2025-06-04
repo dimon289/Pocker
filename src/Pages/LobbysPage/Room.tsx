@@ -1,6 +1,6 @@
 import "./style.css";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "../../Store";
 import axios from "axios";
@@ -13,24 +13,24 @@ interface RoomProps {
         status: string; 
     };
 }
-
+const apiUrl = process.env.REACT_APP_API_URL;
 export default function Room({data}: RoomProps) {
     const name = useSelector((state:RootState) => state.user.userName)
     const connectToLobby = async()=>{
         const roomsUsers = await axios({
             method: "get", 
-            url: `http://localhost:3210/api/rooms?${localStorage.getItem("roomid")}`
+            url: `${apiUrl}/rooms?${localStorage.getItem("roomid")}`
         }).then(response => {
             return response.data[0]?.usersid;
         });
         const userid = await axios({
             method: "get",
-            url: `http://localhost:3210/api/user/email?email=${localStorage.getItem("email")}`
+            url: `${apiUrl}/user/email?email=${localStorage.getItem("email")}`
         }).then(response => response.data.id)  
         await roomsUsers.push(userid) 
         await axios({
             method: "patch",
-            url: `http://localhost:3210/api/rooms/${localStorage.getItem("roomid")}`,
+            url: `${apiUrl}/rooms/${localStorage.getItem("roomid")}`,
             params: {
                 password: password.length !== 0 ? localStorage.getItem("roompassword") || password : undefined
             },
@@ -40,7 +40,7 @@ export default function Room({data}: RoomProps) {
                 .then(response => console.log(response.data))
                 .catch(error => console.error(error));
     }
-    const navigate = useNavigate();
+    // const navigate = useNavigate();
     const [isVisible, setIsVisible] = useState<Boolean>(false) 
     const [password, setpassword] = useState<String>("")
     return (

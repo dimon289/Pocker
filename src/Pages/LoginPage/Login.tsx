@@ -5,7 +5,7 @@ import {changeName, changeAvatar, changeDescription, changeEmail, increaseBalanc
 
 import axios from 'axios';
 import "./style.css"
-
+const apiUrl = process.env.REACT_APP_API_URL;
 function Login(){
 
     
@@ -41,13 +41,13 @@ function Login(){
         if(ValideteAllInputs()){
             const auth = await axios({
             method:"Get",
-            url:`http://localhost:3210/api/user/auth?email=${email}&password=${password}`,
+            url:`${apiUrl}/user/auth?email=${email}&password=${password}`,
         })
         console.log(auth)
         if(auth){
             const user = await axios({
                 method:"get",
-                url: `http://localhost:3210/api/user/email?email=${email}`
+                url: `${apiUrl}/user/email?email=${email}`
             })
             if(user.data.avatar == null){
                 user.data.avatar =""

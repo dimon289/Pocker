@@ -3,6 +3,8 @@ import "./style.css";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+
+const apiUrl = process.env.REACT_APP_API_URL;
 function CreateRoom() {
     const navigete = useNavigate();
     const [roomName, setRoomName] = useState("");
@@ -12,7 +14,7 @@ function CreateRoom() {
     const submitCreateRoom = async () => {
         const user = await axios({
             method:"get",
-            url: `http://localhost:3210/api/user/email?email=${localStorage.getItem("email")}`
+            url: `${apiUrl}/user/email?email=${localStorage.getItem("email")}`
         })
         const userid = (await user).data.id;
         if (roomName.length == 0){
@@ -21,7 +23,7 @@ function CreateRoom() {
         else{
             const room = await axios({
                 method:"post",
-                url:`http://localhost:3210/api/rooms`,
+                url:`${apiUrl}/rooms`,
                 data:{
                     name:  roomName,
                     usersid: [userid],
@@ -33,7 +35,7 @@ function CreateRoom() {
             localStorage.setItem("roompassword",roomPassword)
             const player = await axios({
                 method: "post",
-                url : `http://localhost:3210/api/player`,
+                url : `${apiUrl}/player`,
                 data: {
                     userid: userid,
                     roomid: room.data.id,

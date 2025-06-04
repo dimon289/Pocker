@@ -9,7 +9,7 @@ interface RoomType {
     status: string;
     usersid: string[];
 }
-
+const apiUrl = process.env.REACT_APP_API_URL;
 export default function Lobbys() {
     const [data, setData] = useState<RoomType[]>([]);
     const navigate = useNavigate();
@@ -17,7 +17,7 @@ export default function Lobbys() {
         const getRooms = async() =>{
             const rooms = await axios({
                 method: "get",
-                url: `http://localhost:3210/api/rooms`
+                url: `${apiUrl}/rooms`
             })
             setData(rooms.data)
         }

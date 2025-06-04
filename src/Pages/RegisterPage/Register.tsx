@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import axios from 'axios';
 import "./style.css";
-
+const apiUrl = process.env.REACT_APP_API_URL;
 function Register() {
     const navigate = useNavigate();
     const [nickName, setNickName] = useState<string>("");
@@ -81,11 +81,11 @@ function Register() {
             if (ValideteAllInputs()) {
                 const IsUniqueEmail = await axios({
                     method: "get",
-                    url: `http://localhost:3210/api/user/email?email=${email}`,
+                    url: `${apiUrl}/user/email?email=${email}`,
                 });
                 const IsUniqueName = await axios({
                     method: "get",
-                    url: `http://localhost:3210/api/user/name?name=${nickName}`,
+                    url: `${apiUrl}/user/name?name=${nickName}`,
                 });
                 if (!IsUniqueEmail) {
                     setError("Ваш Email вже зареєстровано");
@@ -96,7 +96,7 @@ function Register() {
                 else {
                     await axios({
                         method: "post",
-                        url: `http://localhost:3210/api/user`,
+                        url: `${apiUrl}/user`,
                         data: {
                             "nickname": nickName,
                             "email": email,

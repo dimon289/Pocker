@@ -7,7 +7,7 @@ import { changeName, changeAvatar, changeDescription, changeEmail, increaseBalan
 import "./style.css";
 import axios from "axios";
 import { BurgerMenu } from "./burgermenu";
-
+const apiUrl = process.env.REACT_APP_API_URL;
 function Home() {
     const dispatch = useDispatch();
     const name = useSelector((state: RootState) => state.user.userName);
@@ -22,7 +22,7 @@ function Home() {
                 try {
                     const user = await axios({
                         method: "get",
-                        url: `http://localhost:3210/api/user/email?email=${email}`,
+                        url: `${apiUrl}/user/email?email=${email}`,
                     });
 
                     if (user.data.avatar == null) {
