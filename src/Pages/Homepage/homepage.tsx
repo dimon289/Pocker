@@ -20,11 +20,11 @@ function Home() {
 
         if (email && password) {
             const fetchUserData = async () => {
-                console.log(`${apiUrl}/user/email?email=${email}`)
+                console.log(`${apiUrl}/api/user/email?email=${email}`)
                 try {
                     const user = await axios({
                         method: "get",
-                        url: `${apiUrl}/user/email?email=${email}`,
+                        url: `${apiUrl}/api/user/email?email=${email}`,
                     });
 
                     if (user.data.avatar == null) {

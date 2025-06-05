@@ -14,7 +14,7 @@ function CreateRoom() {
     const submitCreateRoom = async () => {
         const user = await axios({
             method:"get",
-            url: `${apiUrl}/user/email?email=${localStorage.getItem("email")}`
+            url: `${apiUrl}/api/user/email?email=${localStorage.getItem("email")}`
         })
         const userid = (await user).data.id;
         if (roomName.length == 0){
@@ -23,7 +23,7 @@ function CreateRoom() {
         else{
             const room = await axios({
                 method:"post",
-                url:`${apiUrl}/rooms`,
+                url:`${apiUrl}/api/rooms`,
                 data:{
                     name:  roomName,
                     usersid: [userid],
@@ -35,7 +35,7 @@ function CreateRoom() {
             localStorage.setItem("roompassword",roomPassword)
             const player = await axios({
                 method: "post",
-                url : `${apiUrl}/player`,
+                url : `${apiUrl}/api/player`,
                 data: {
                     userid: userid,
                     roomid: room.data.id,

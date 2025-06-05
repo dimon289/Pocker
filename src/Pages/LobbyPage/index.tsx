@@ -17,7 +17,7 @@ export default function Lobbys() {
         const getRooms = async() =>{
             const rooms = await axios({
                 method: "get",
-                url: `${apiUrl}/rooms`
+                url: `${apiUrl}/api/rooms`
             })
             setData(rooms.data)
         }

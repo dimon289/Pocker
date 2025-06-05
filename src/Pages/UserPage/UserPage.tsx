@@ -42,7 +42,7 @@ function User(){
                         dispatch(changeAvatar(inputURL))
                         await axios({
                             method:"patch",
-                            url:`${apiUrl}/user?email=${localStorage.getItem("email")}`,
+                            url:`${apiUrl}/api/user?email=${localStorage.getItem("email")}`,
                             data:{
                                 "avatar": inputURL,
                             }
@@ -76,7 +76,7 @@ function User(){
                     dispatch(changeName(inputName))
                     await axios({
                         method:"patch",
-                        url:`${apiUrl}/user?email=${localStorage.getItem("email")}`,
+                        url:`${apiUrl}/api/user?email=${localStorage.getItem("email")}`,
                         data:{
                             "nickname": inputName,
                         }
@@ -99,7 +99,7 @@ function User(){
                     setRedactDescription(prevState => !prevState)
                     await axios({
                         method:"patch",
-                        url:`${apiUrl}/user?email=${localStorage.getItem("email")}`,
+                        url:`${apiUrl}/api/user?email=${localStorage.getItem("email")}`,
                         data:{
                             "description": inputDescription,
                         }
@@ -120,7 +120,7 @@ function User(){
                 {dispatch(changeName(""))
                 axios({
                     method:"Delete",
-                    url:`${apiUrl}/user?email=${localStorage.getItem("email")}&password=${localStorage.getItem("password")}`,
+                    url:`${apiUrl}/api/user?email=${localStorage.getItem("email")}&password=${localStorage.getItem("password")}`,
                 }).then((e) => {console.log("ABOBA " + e)
                     localStorage.removeItem("email")
                     localStorage.removeItem("password")

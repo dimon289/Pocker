@@ -41,13 +41,13 @@ function Login(){
         if(ValideteAllInputs()){
             const auth = await axios({
             method:"Get",
-            url:`${apiUrl}/user/auth?email=${email}&password=${password}`,
+            url:`${apiUrl}/api/user/auth?email=${email}&password=${password}`,
         })
         console.log(auth)
         if(auth){
             const user = await axios({
                 method:"get",
-                url: `${apiUrl}/user/email?email=${email}`
+                url: `${apiUrl}/api/user/email?email=${email}`
             })
             if(user.data.avatar == null){
                 user.data.avatar =""

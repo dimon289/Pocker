@@ -78,15 +78,15 @@ function Register() {
     {error.length !== 0 && <p className="error text-red-500 text-sm mb-4 text-left">{error}</p>}
     <button 
         onClick={async () => {
-            console.log(`${apiUrl}/user`);
+            console.log(`${apiUrl}/api/user`);
             if (ValideteAllInputs()) {
                 const IsUniqueEmail = await axios({
                     method: "get",
-                    url: `${apiUrl}/user/email?email=${email}`,
+                    url: `${apiUrl}/api/user/email?email=${email}`,
                 });
                 const IsUniqueName = await axios({
                     method: "get",
-                    url: `${apiUrl}/user/name?name=${nickName}`,
+                    url: `${apiUrl}/api/user/name?name=${nickName}`,
                 });
                 if (!IsUniqueEmail) {
                     setError("Ваш Email вже зареєстровано");
@@ -97,7 +97,7 @@ function Register() {
                 else {
                     await axios({
                         method: "post",
-                        url: `${apiUrl}/user`,
+                        url: `${apiUrl}/api/user`,
                         data: {
                             "nickname": nickName,
                             "email": email,
