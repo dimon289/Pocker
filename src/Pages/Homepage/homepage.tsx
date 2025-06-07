@@ -47,7 +47,7 @@ function Home() {
 
     return (
         <>
-        <header>
+        <header className="poker-header">
             <div className="burger-menu">
                 <BurgerMenu />
             </div>
@@ -62,8 +62,8 @@ function Home() {
                 </div>
             ) : (
                 <div>
-                    <div><Link to="/Register">Register</Link></div>
-                    <div><Link to="/Login">LogIn</Link></div>
+                    <div><Link to="/Register" className="register-link">Register</Link></div>
+                    <div><Link to="/Login" className="login-link">LogIn</Link></div>
                 </div>
             )}
         </header>

@@ -79,3 +79,79 @@ ul li a {
 ul li a:hover {
     background-color: #ff9800;
 }
+
+/* Спільні стилі для обох лінків */
+.register-link, .login-link {
+    position: relative;
+    color: white;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 18px;
+    margin: 0 20px;
+    padding: 5px;
+    transition: color 0.3s ease;
+}
+
+/* Відключаємо зміну кольору при наведенні */
+.register-link:hover,
+.login-link:hover {
+    color: white;
+}
+
+/* Стилі для символу ♥ біля Register */
+.register-link::before {
+    content: "♥";
+    position: absolute;
+    left: -20px; /* відступ зліва */
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    color: red;
+    pointer-events: none;
+}
+.register-link::after {
+    content: "♥";
+    position: absolute;
+    right: -20px; /* відступ справа */
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    color: red;
+    pointer-events: none;
+}
+/* Показуємо символ при наведенні */
+.register-link:hover::before,
+.register-link:hover::after {
+    opacity: 1;
+}
+/* Стилі для символу ♦ біля Login */
+.login-link::after {
+    content: "♦";
+    position: absolute;
+    right: -20px; /* відступ справа */
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    color: #b300b3;
+    pointer-events: none;
+}
+
+.login-link::before {
+    content: "♦";
+    position: absolute;
+    left: -20px; /* відступ зліва */
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    color: #b300b3;
+    pointer-events: none;
+}
+/* Показуємо символ при наведенні */
+.login-link:hover::before,
+.login-link:hover::after {
+    opacity: 1;
+}
