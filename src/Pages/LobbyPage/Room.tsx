@@ -14,7 +14,7 @@ interface RoomProps {
 // function connectionFunction(){
     
 // }
-// const apiUrl = process.env.REACT_APP_API_URL;
+//const apiUrl = import.meta.env.VITE_API_URL;
 export default function Room({data}: RoomProps) {
     const navigate = useNavigate();
     const [isVisible, setIsVisible] = useState<Boolean>(false) 

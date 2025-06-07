@@ -13,7 +13,7 @@ interface RoomProps {
         status: string; 
     };
 }
-const apiUrl = process.env.REACT_APP_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 export default function Room({data}: RoomProps) {
     const name = useSelector((state:RootState) => state.user.userName)
     const connectToLobby = async()=>{

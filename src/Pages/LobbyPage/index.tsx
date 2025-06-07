@@ -9,7 +9,7 @@ interface RoomType {
     status: string;
     usersid: string[];
 }
-const apiUrl = process.env.REACT_APP_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 export default function Lobbys() {
     const [data, setData] = useState<RoomType[]>([]);
     const navigate = useNavigate();

@@ -6,7 +6,7 @@ import { RootState } from "../../Store";
 import "./style.css";
 import axios from 'axios';
 
-const apiUrl = process.env.REACT_APP_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 function User(){
     const navigate = useNavigate();
 
