@@ -78,7 +78,7 @@ function Register() {
     {error.length !== 0 && <p className="error text-red-500 text-sm mb-4 text-left">{error}</p>}
     <button 
         onClick={async () => {
-            console.log(`${apiUrl}/api/user`);
+            
             if (ValideteAllInputs()) {
                 const IsUniqueEmail = await axios({
                     method: "get",
