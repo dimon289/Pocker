@@ -13,6 +13,7 @@ function Home() {
     const dispatch = useDispatch();
     const name = useSelector((state: RootState) => state.user.userName);
     const balance = useSelector((state: RootState) => state.user.balance);
+    console.log(import.meta.env.VITE_API_URL);
 
     useEffect(() => {
         const email = localStorage.getItem("email");
