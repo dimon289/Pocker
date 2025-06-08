@@ -16,11 +16,10 @@ function Home() {
     console.log(import.meta.env.VITE_API_URL);
 
     useEffect(() => {
-        const email = localStorage.getItem("email");
         const token = localStorage.getItem("token")
         let intervalId: any;
 ;
-        if (email && token) {
+        if (token) {
             const fetchUserData = async () => {
                 try {
                     const auth = await axios({
@@ -29,11 +28,11 @@ function Home() {
                         headers:{
                             'Authorization':`Bearer ${token}`
                         }
-                    }).catch()
+                    })
                     if(auth.data.email){
                         const user = await axios({
                             method: "get",
-                            url: `${apiUrl}/api/user/email?email=${email}`,
+                            url: `${apiUrl}/api/user/email?email=${auth.data.email}`,
                         });
 
                         if (user.data.avatar == null) {
@@ -49,7 +48,6 @@ function Home() {
                 }
                 catch (error) {
                     console.error("Error fetching user data:", error);
-                    localStorage.removeItem("email")
                     localStorage.removeItem("token")
                     clearInterval(intervalId);
                 }

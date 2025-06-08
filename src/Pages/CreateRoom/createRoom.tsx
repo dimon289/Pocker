@@ -12,9 +12,16 @@ function CreateRoom() {
     const [errmesage, seterrmessage] = useState<String>("")
 
     const submitCreateRoom = async () => {
+        const token = localStorage.getItem("token")
+        const auth = await axios({
+            method: "get",
+            url: `${apiUrl}/api/user/profile`,
+            headers:{
+                'Authorization':`Bearer ${token}`
+        }})  
         const user = await axios({
             method:"get",
-            url: `${apiUrl}/api/user/email?email=${localStorage.getItem("email")}`
+            url: `${apiUrl}/api/user/email?email=${auth.data.email}`
         })
         const userid = (await user).data.id;
         if (roomName.length == 0){

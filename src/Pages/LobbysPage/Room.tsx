@@ -23,9 +23,18 @@ export default function Room({data}: RoomProps) {
         }).then(response => {
             return response.data[0]?.usersid;
         });
+
+        const token = localStorage.getItem("token")
+        const auth = await axios({
+                        method: "get",
+                        url: `${apiUrl}/api/user/profile`,
+                        headers:{
+                            'Authorization':`Bearer ${token}`
+                        }
+        })
         const userid = await axios({
             method: "get",
-            url: `${apiUrl}/user/email?email=${localStorage.getItem("email")}`
+            url: `${apiUrl}/user/email?email=${auth.data.email}`
         }).then(response => response.data.id)  
         await roomsUsers.push(userid) 
         await axios({

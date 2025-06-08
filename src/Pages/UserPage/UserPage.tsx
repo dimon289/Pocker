@@ -9,12 +9,14 @@ import axios from 'axios';
 const apiUrl = import.meta.env.VITE_API_URL;
 function User(){
     const navigate = useNavigate();
-
     const dispatch = useDispatch();
 
     const name = useSelector((state:RootState) => state.user.userName)
+
+    const [showModal, setShowModal] = useState(false);
     const [redactName, setRedactName] = useState<boolean>(false)
     const [inputName, setinputName] = useState<string>("");
+    const [inputPassword, setinputPassword] = useState<string>("");
 
 
     const description = useSelector((state:RootState) => state.user.description)
@@ -32,22 +34,57 @@ function User(){
         setisVisibleInputIMGForm(prevState => !prevState);
     };
 
+    const ChangePhoto = async() =>{
+        if( inputURL.length !== 0){           
+            const token = localStorage.getItem("token")
+            const auth = await axios({
+                method: "get",
+                url: `${apiUrl}/api/user/profile`,
+                headers:{
+                    'Authorization':`Bearer ${token}`
+            }})  
+            await axios({
+                method:"patch",
+                url:`${apiUrl}/api/user?email=${auth.data.email}`,
+                data:{
+                    "avatar": inputURL,
+                }
+            }).then(()=>dispatch(changeAvatar(inputURL)))
+        }
+    }
+
+    const DeleteAccount = async() =>{
+
+        const token = localStorage.getItem("token")
+        const auth = await axios({
+            method: "get",
+            url: `${apiUrl}/api/user/profile`,
+            headers:{
+                'Authorization':`Bearer ${token}`
+            }})  
+        const approwe_pass = await axios({
+            method:"get",
+            url:`${apiUrl}/api/user/auth?email=${auth.data.email}&password=${inputPassword}`,
+        })
+        if(approwe_pass){
+            axios({
+                method:"Delete",
+                url:`${apiUrl}/api/user?email=${auth.data.email}&password=${inputPassword}`,
+            }).then((e) => {console.log("ABOBA " + e)
+                localStorage.removeItem("token")
+                dispatch(changeName(""))
+                navigate("/");
+            })
+        } 
+    }
+    
+
     return(     
     <div className="userPage">
         {isVisibleInputIMGForm && (
             <div className={`formInput ${isVisibleInputIMGForm ? "visible":""}`}>
                 <input type="text"  onChange={(e) => {setinputURL(e.target.value)}}/>
-                <button onClick= {async()=>{
-                    if( inputURL.length !== 0){
-                        dispatch(changeAvatar(inputURL))
-                        await axios({
-                            method:"patch",
-                            url:`${apiUrl}/api/user?email=${localStorage.getItem("email")}`,
-                            data:{
-                                "avatar": inputURL,
-                            }
-                        })
-                    }}}>changeAvatar</button>
+                <button onClick= {ChangePhoto}>changeAvatar</button>
                 <button onClick={toggleFormVisibility}>Close form</button>
             </div>
         )}
@@ -73,14 +110,21 @@ function User(){
                 <input onChange={(e) => setinputName(e.target.value)}/>
                 <button onClick={async() => {
                     setRedactName(prevState => !prevState)
-                    dispatch(changeName(inputName))
+                    
+                    const token = localStorage.getItem("token")
+                    const auth = await axios({
+                        method: "get",
+                        url: `${apiUrl}/api/user/profile`,
+                        headers:{
+                            'Authorization':`Bearer ${token}`
+                    }})  
                     await axios({
                         method:"patch",
-                        url:`${apiUrl}/api/user?email=${localStorage.getItem("email")}`,
+                        url:`${apiUrl}/api/user?email=${auth.data.email}`,
                         data:{
                             "nickname": inputName,
                         }
-                    })
+                    }).then(()=>dispatch(changeName(inputName)))
                 }}>Submit</button>
             </div>)}
                 
@@ -95,39 +139,51 @@ function User(){
             (<div className="description">
                 <textarea onChange={(e) => setinputDescription(e.target.value)}/>
                 <button onClick={async() => {
-                    dispatch(changeDescription(inputDescription))
                     setRedactDescription(prevState => !prevState)
+                    const token = localStorage.getItem("token")
+                    const auth = await axios({
+                        method: "get",
+                        url: `${apiUrl}/api/user/profile`,
+                        headers:{
+                            'Authorization':`Bearer ${token}`
+                    }})  
                     await axios({
                         method:"patch",
-                        url:`${apiUrl}/api/user?email=${localStorage.getItem("email")}`,
+                        url:`${apiUrl}/api/user?email=${auth.data.email}`,
                         data:{
                             "description": inputDescription,
                         }
-                    })
+                    }).then(()=>dispatch(changeDescription(inputDescription)))
                 }}>Submit</button>
             </div>)}
         </div>  
-
+        {/* КНИПОЧКА УДАЛИТИ */}
         <div className="LogOutandDelete">
             <Link to={"/"}>
                 <button onClick={()=>
                 {dispatch(changeName(""))
-                    localStorage.removeItem("email")
                     localStorage.removeItem("token")
                 }}>Log out</button>
             </Link>
-            <button className="delete" onClick={()=>
-                {dispatch(changeName(""))
-                axios({
-                    method:"Delete",
-                    url:`${apiUrl}/api/user?email=${localStorage.getItem("email")}&password=${localStorage.getItem("password")}`,
-                }).then((e) => {console.log("ABOBA " + e)
-                    localStorage.removeItem("email")
-                    localStorage.removeItem("password")
-                    navigate("/");
-                })
-                }}>Delete account</button>
+            <button className="delete" onClick={() => setShowModal(true)}>Delete account</button>
         </div>
+        {/* МОДАЛЬНЕ ВІКНО */}
+            {showModal && (
+                <div className="modal-overlay">
+                <div className="modal">
+                    <h2>Confirm Account Deletion</h2>
+                    <input
+                    type="password"
+                    placeholder="Enter your password"
+                    value={inputPassword}
+                    onChange={(e) => setinputPassword(e.target.value)}/>
+                        <div className="modal-buttons">
+                            <button onClick={DeleteAccount}>Confirm</button>
+                            <button onClick={() => setShowModal(false)}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}    
     </div>
 )}
 export default User;

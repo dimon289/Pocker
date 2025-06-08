@@ -57,7 +57,6 @@ function Login(){
             dispatch(changeDescription(user.data.description))
             dispatch(increaseBalance(user.data.mybalance))
             dispatch(changeAvatar(user.data.avatar))
-            localStorage.setItem("email", email)
             localStorage.setItem("token", auth.data.access_token)
             navigate("/User")
                 }
