@@ -53,7 +53,7 @@ function Home() {
                 }
                     fetchUserData();
 
-                    intervalId = setInterval(fetchUserData, 300000); // виконуємо кожні 5 хвилин
+                    intervalId = setInterval(fetchUserData, 5 * 100 * 60); // виконуємо кожні 5 хвилин
 
                     return () => clearInterval(intervalId); 
                 }
