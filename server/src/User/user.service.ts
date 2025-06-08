@@ -27,6 +27,8 @@ export class UserService {
         }
     }
 
+
+
     async findEmail(email: string) {
         try {
             const user = await this.prisma.users.findFirst({where: { email: email }});
@@ -106,4 +108,33 @@ export class UserService {
     
         return true;
     }
+
+    async updateStatus(email: string, status: boolean ) {
+        return this.prisma.users.update({
+            where: { email: email },  
+            data: {
+            status: status,
+            },
+        });
+    }
+
+      private onlineUsers = new Map<string, NodeJS.Timeout>();
+    
+      updateUserOnlineStatus(email: string) {
+        // Встановлюємо статус онлайн
+        this.updateStatus(email, true);
+    
+        // Якщо є таймер, очищаємо його
+        if (this.onlineUsers.has(email)) {
+          clearTimeout(this.onlineUsers.get(email));
+        }
+    
+        // Через 10 хвилин після останньої активності ставимо офлайн
+        const timeout = setTimeout(() => {
+          this.updateStatus(email, false);
+          this.onlineUsers.delete(email);
+        }, 10 * 60 * 1000); // 10 хвилин
+    
+        this.onlineUsers.set(email, timeout);
+      }
 }

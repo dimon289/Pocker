@@ -9,9 +9,13 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
   @UseGuards(JwtAuthGuard)
   @Get('profile')
-  getProfile(@Request() req) {
-    return req.user;
+  async getProfile(@Request() req) {
+    const user = req.user;
+
+    await this.userService.updateUserOnlineStatus(user.email);
+    return user
   }
+  
   @Get()
   findAll() {
     return this.userService.findAll();
