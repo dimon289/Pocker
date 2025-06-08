@@ -1,27 +1,21 @@
-import { IsString, IsOptional, IsEnum, IsArray } from 'class-validator';
-import { roomstatus } from '@prisma/client';
-
+import { IsString, IsOptional, IsInt } from 'class-validator';
 
 export class CreateRoomDto {
-    @IsString()
-    name: string;
+  @IsString()
+  name: string;
 
-    @IsOptional()
-    @IsString()
-    password?: string;
+  @IsOptional()
+  @IsString()
+  pass?: string;
 
-    @IsArray()
-    usersid: number[];
-
-    @IsEnum(roomstatus)
-    status: roomstatus;
+  @IsInt()
+  userID: number;
 }
 
-export class PatchRoomDto {
-    @IsArray()
-    usersid?: number[];
+export class JoinRoomDto {
+  @IsInt()
+  userID: number;
 
-    @IsEnum(roomstatus)
-    status?: roomstatus;
+  @IsInt()
+  roomID: number;
 }
-export type TUpdateRoomDto = Partial<CreateRoomDto>
