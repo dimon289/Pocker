@@ -18,6 +18,8 @@ function Home() {
     useEffect(() => {
         const email = localStorage.getItem("email");
         const token = localStorage.getItem("token")
+        let intervalId: any;
+;
         if (email && token) {
             const fetchUserData = async () => {
                 try {
@@ -27,7 +29,7 @@ function Home() {
                         headers:{
                             'Authorization':`Bearer ${token}`
                         }
-                    })
+                    }).catch()
                     if(auth.data.email){
                         const user = await axios({
                             method: "get",
@@ -47,8 +49,15 @@ function Home() {
                 }
                 catch (error) {
                     console.error("Error fetching user data:", error);
+                    localStorage.removeItem("email")
+                    localStorage.removeItem("token")
+                    clearInterval(intervalId);
                 }
                     fetchUserData();
+
+                    intervalId = setInterval(fetchUserData, 300000); // виконуємо кожні 5 хвилин
+
+                    return () => clearInterval(intervalId); 
                 }
             }
             
