@@ -23,5 +23,5 @@ dist-ssr
 *.sln
 *.sw?
 .env
-server/.env
-server/src/main.ts
+/server/.env
+/server/src/main.ts
