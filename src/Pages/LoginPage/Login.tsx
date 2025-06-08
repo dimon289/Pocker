@@ -40,11 +40,11 @@ function Login(){
     const buttnfunc = async() =>{
         if(ValideteAllInputs()){
             const auth = await axios({
-            method:"Get",
-            url:`${apiUrl}/api/user/auth?email=${email}&password=${password}`,
+            method:"Post",
+            url:`${apiUrl}/api/auth/login?email=${email}&password=${password}`,
         })
         console.log(auth)
-        if(auth){
+        if(auth.data){
             const user = await axios({
                 method:"get",
                 url: `${apiUrl}/api/user/email?email=${email}`
@@ -58,7 +58,7 @@ function Login(){
             dispatch(increaseBalance(user.data.mybalance))
             dispatch(changeAvatar(user.data.avatar))
             localStorage.setItem("email", email)
-            localStorage.setItem("password", password)
+            localStorage.setItem("token", auth.data.access_token)
             navigate("/User")
                 }
             }

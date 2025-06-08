@@ -17,32 +17,41 @@ function Home() {
 
     useEffect(() => {
         const email = localStorage.getItem("email");
-        const password = localStorage.getItem("password");
-
-        if (email && password) {
+        const token = localStorage.getItem("token")
+        if (email && token) {
             const fetchUserData = async () => {
-                console.log(`${apiUrl}/api/user/email?email=${email}`)
                 try {
-                    const user = await axios({
+                    const auth = await axios({
                         method: "get",
-                        url: `${apiUrl}/api/user/email?email=${email}`,
-                    });
+                        url: `${apiUrl}/api/user/profile`,
+                        headers:{
+                            'Authorization':`Bearer ${token}`
+                        }
+                    })
+                    if(auth.data.email){
+                        const user = await axios({
+                            method: "get",
+                            url: `${apiUrl}/api/user/email?email=${email}`,
+                        });
 
-                    if (user.data.avatar == null) {
-                        user.data.avatar = "";
-                    }
+                        if (user.data.avatar == null) {
+                            user.data.avatar = "";
+                        }
 
-                    dispatch(changeName(user.data.nickname));
-                    dispatch(changeEmail(user.data.email));
-                    dispatch(changeDescription(user.data.description));
-                    dispatch(increaseBalance(user.data.mybalance));
-                    dispatch(changeAvatar(user.data.avatar));
-                } catch (error) {
+                        dispatch(changeName(user.data.nickname));
+                        dispatch(changeEmail(user.data.email));
+                        dispatch(changeDescription(user.data.description));
+                        dispatch(increaseBalance(user.data.mybalance));
+                        dispatch(changeAvatar(user.data.avatar));
+                    } 
+                }
+                catch (error) {
                     console.error("Error fetching user data:", error);
                 }
-            };
-            fetchUserData();
-        }
+                    fetchUserData();
+                }
+            }
+            
     }, [dispatch]);
 
     return (

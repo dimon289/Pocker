@@ -113,7 +113,7 @@ function User(){
                 <button onClick={()=>
                 {dispatch(changeName(""))
                     localStorage.removeItem("email")
-                    localStorage.removeItem("password")
+                    localStorage.removeItem("token")
                 }}>Log out</button>
             </Link>
             <button className="delete" onClick={()=>

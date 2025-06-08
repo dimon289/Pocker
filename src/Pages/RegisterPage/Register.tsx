@@ -106,7 +106,7 @@ function Register() {
 
                     }).then((e) => {
                         console.log("ABOBA " + e);
-                        navigate("/");
+                        navigate("/Login");
                     })
                         .catch(() => { setError("Не вдалось зареєстуватись") });
                 }
