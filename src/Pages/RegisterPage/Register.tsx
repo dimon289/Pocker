@@ -13,30 +13,29 @@ function Register() {
 
     function ValideteAllInputs(): boolean {
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (nickName.length === 0) {
-            setError(error + "Невведено ім'я");
+        let error_message = ""
+        if (nickName == "") {
+            error_message += "Невведено ім'я"
         }
-        if (email.length === 0) {
-            setError(error + "\nНевведено email");
+        if (email == "") {
+            error_message += "\nНевведено email";
         }
-        if (password.length === 0) {
-            setError(error + "\nНевведено пароль");
+        if (password == "") {
+            error_message += "\nНевведено пароль";
         }
-        if (checkPassword.length === 0) {
-            setError(error + "\nНевведено пароль для перевірки");
+        if (checkPassword == "") {
+            error_message += "\nНевведено пароль для перевірки";
         }
+        if (!emailPattern.test(email)) {
+            error_message += "\nВведіть коректний email!";
+        }
+        if (checkPassword !== password) {
+            error_message += "\nПаролі не співпадають";
+        }
+        setError(error_message)
         if (error.length !== 0) {
             return false;
         }
-        else if (!emailPattern.test(email)) {
-            setError("Введіть коректний email!");
-            return false;
-        }
-        else if (checkPassword !== password) {
-            setError("Паролі не співпадають");
-            return false;
-        }
-        setError("");
         return true;
     }
 
@@ -78,7 +77,6 @@ function Register() {
     {error.length !== 0 && <p className="error text-red-500 text-sm mb-4 text-left">{error}</p>}
     <button 
         onClick={async () => {
-            
             if (ValideteAllInputs()) {
                 const IsUniqueEmail = await axios({
                     method: "get",
@@ -112,7 +110,7 @@ function Register() {
                 }
             }
         }} 
-        className="w-full bg-blue-600 text-white font-bold py-2 rounded-md transition duration-300 hover:bg-blue-700 mt-4 flex items-center justify-center"
+        className="w-full bg-blue-600 text-white font-bold py-2 rounded-md transition duration-300 hover:bg-blue-700 mt-4 flex items-center justify-center Regbutton"
     >
         Submit
     </button>
