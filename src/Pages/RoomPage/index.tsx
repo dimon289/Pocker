@@ -1,4 +1,3 @@
-import React from 'react';
 
 const players = [
   { id: 1, name: 'Alice', avatar: 'https://randomuser.me/api/portraits/women/44.jpg', cards: ['🂠', '🂠'], seat: 'top' },
