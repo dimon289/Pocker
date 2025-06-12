@@ -38,7 +38,7 @@ export class StepService {
   // Встановити цей крок як поточний у грі
   async setCurrent(stepId: number): Promise<void> {
     const st = await this.findById(stepId);
-    await this.prisma.pocker.update({
+    await this.prisma.poker.update({
       where: { id: st.pockerid },
       data: { step: { connect: { id: stepId } } },
     });

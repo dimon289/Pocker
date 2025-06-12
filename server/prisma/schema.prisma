@@ -82,7 +82,7 @@ model users {
   chatsid     Int[]    @default([])
   status      Boolean? @default(false)
   balance     balance?
-  players     players?
+  players     players? 
 }
 
 enum roomstatus {
