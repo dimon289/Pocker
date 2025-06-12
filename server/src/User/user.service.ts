@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { CreateUserDto, UpdateUserDto } from 'src/User/user.dto';
 import * as bcrypt from 'bcrypt';
+import { players } from '@prisma/client';
 
 @Injectable()
 export class UserService {
@@ -27,9 +28,6 @@ export class UserService {
         }
     }
 
-    
-
-
     async findEmail(email: string) {
         try {
             const user = await this.prisma.users.findFirst({where: { email: email }});
@@ -38,6 +36,10 @@ export class UserService {
             console.error("Помилка при пошуку email:", error);
             throw new Error("Не вдалося отримати користувача");
         }
+    }
+
+    async finByPlayer(player:players){
+        this.prisma.users.findUnique({where: { id: player.userid}})
     }
 
     async createUser(dto: CreateUserDto) {

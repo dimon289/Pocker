@@ -35,14 +35,15 @@ model players {
   step_step_playeridToplayers      step?    @relation("step_playeridToplayers")
 }
 
-model pocker {
+model poker {
   id        Int      @id @default(autoincrement())
-  roomid    Int      @unique
+  roomid    Int
   playersid Int[]
   cards     String[] @db.Char(2)
   bank      Int      @default(0)
   room      room     @relation(fields: [roomid], references: [id], onDelete: Cascade, onUpdate: NoAction)
   step      step?
+	@@map("pocker")
 }
 
 model room {
@@ -52,7 +53,7 @@ model room {
   usersid  Int[]
   status   roomstatus
   players  players[]
-  pocker   pocker?
+  pockers  poker[] 
 }
 
 model step {
@@ -66,7 +67,7 @@ model step {
   balance                             balance?
   players_step_next_playeridToplayers players  @relation("step_next_playeridToplayers", fields: [next_playerid], references: [id], onDelete: Cascade, onUpdate: NoAction)
   players_step_playeridToplayers      players  @relation("step_playeridToplayers", fields: [playerid], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  pocker                              pocker   @relation(fields: [pockerid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  pocker                              poker   @relation(fields: [pockerid], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model users {

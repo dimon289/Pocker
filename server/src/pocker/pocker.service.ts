@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { pocker, step, Prisma } from '@prisma/client';
+import { poker, step, Prisma } from '@prisma/client';
 
 @Injectable()
 export class PockerService {
@@ -12,13 +12,13 @@ export class PockerService {
     playersid: number[];
     cards: string[];
     bank: number;
-  }): Promise<pocker> {
-    return this.prisma.pocker.create({ data });
+  }): Promise<poker> {
+    return this.prisma.poker.create({ data });
   }
 
   // Отримати гру за ID кімнати або помилка, якщо не знайдено
-  async findByRoomId(roomId: number): Promise<pocker> {
-    const game = await this.prisma.pocker.findFirst({
+  async findByRoomId(roomId: number): Promise<poker> {
+    const game = await this.prisma.poker.findFirst({
       where: { roomid: roomId },
       orderBy: {id: 'desc'},
     });
@@ -29,8 +29,8 @@ export class PockerService {
   }
 
   // Отримати гру за її ID або помилка, якщо не знайдено
-  async findById(id: number): Promise<pocker & { step: step | null }> {
-    const game = await this.prisma.pocker.findUnique({
+  async findById(id: number): Promise<poker & { step: step | null }> {
+    const game = await this.prisma.poker.findUnique({
       where: { id },
       include: { step: true },
     });
@@ -41,15 +41,15 @@ export class PockerService {
   }
 
   // Збільшити банк гри
-  async incrementBank(id: number, amount: number): Promise<pocker> {
-    return this.prisma.pocker.update({
+  async incrementBank(id: number, amount: number): Promise<poker> {
+    return this.prisma.poker.update({
       where: { id },
       data: { bank: { increment: amount } },
     });
   }
 
-  async update(id: number, data: Prisma.pockerUpdateInput): Promise<pocker> {
-    return this.prisma.pocker.update({ where: { id }, data });
+  async update(id: number, data: Prisma.pokerUpdateInput): Promise<poker> {
+    return this.prisma.poker.update({ where: { id }, data });
   }
 
   evaluateHand(cards: string[]): { name: string; rank: number } {
@@ -59,7 +59,7 @@ export class PockerService {
   }
 
   async updatePlayers(roomId: number, updatedPlayers: number[]){
-    await this.prisma.pocker.update({
+    await this.prisma.poker.update({
       where: { id: roomId },
       data: {
         playersid: updatedPlayers,

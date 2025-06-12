@@ -3,6 +3,7 @@ import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { PlayerService } from '../player/player.service';
+import { UserService } from '../User/user.service';
 import { PockerService } from '../pocker/pocker.service';
 import { StepService } from '../step/step.service';
 import { error } from 'console';
@@ -17,18 +18,15 @@ export class RoomsGateway implements OnGatewayConnection {
   @WebSocketServer()
   server: Server;
 
-  private roomReadyStatus: Map<string, Set<string>> = new Map();
-  private roomTimers: Map<string, NodeJS.Timeout> = new Map();
-  private playerSockets: Map<string, Socket> = new Map();
-
   constructor(  
     private readonly prisma: PrismaService,
     private readonly playersService: PlayerService,
+    private readonly usersService: UserService,
     private readonly pockerService: PockerService,
     private readonly stepService: StepService
   ) {}
 
-  private SocketUseridMap = new Map<Socket, number>();
+  private UseridSocketMap = new Map<number, Socket>();
   private RoomTableMap = new Map<number, number>();
 
   async handleConnection(client: Socket) {
@@ -64,13 +62,13 @@ export class RoomsGateway implements OnGatewayConnection {
 
     const roomExists = this.server.sockets.adapter.rooms.has(wsRoomId);
     if (!roomExists) {
-      this.SocketUseridMap.set(client, userId);
+      this.UseridSocketMap.set(userId,client);
       client.join(wsRoomId);
       let TableId = await this.handleTableCreate(roomId)
       this.RoomTableMap.set(client.data.roomId, TableId)
     }
 
-    this.SocketUseridMap.set(client, userId);
+    this.UseridSocketMap.set(userId,client);
     client.join(wsRoomId);
 
     this.server.to(wsRoomId).emit('userJoined', { userId });
@@ -153,17 +151,26 @@ export class RoomsGateway implements OnGatewayConnection {
       return card;
     };
 
-    const pockerId = this.RoomTableMap.get(client.data.roomId)
+    const pockerId = await this.RoomTableMap.get(client.data.roomId)
 
-    this.pockerService.update(pockerId!, {
+    await this.pockerService.update(pockerId!, {
       cards: [drawCard(),drawCard(),drawCard(),drawCard(),drawCard()]
     })
 
     await Promise.all(
-      roomPlayers.map(playerId => 
+      roomPlayers.map(async (playerId) => {
+        const cards = [drawCard(), drawCard()]
+
         this.playersService.update(playerId, {
-          cards: [drawCard(), drawCard()]
+          cards: cards
         })
+
+        const player = await this.playersService.findById(playerId);
+        const socket = await this.UseridSocketMap.get(player!.userid)
+
+        socket!.emit('yourCards', {cards})
+      
+      }
       )
     );
   }

@@ -8,6 +8,13 @@ import { RoomsService } from '../rooms/rooms.service'
 export class PlayerService {
   constructor(private readonly prisma: PrismaService, roomService: RoomsService) {}
 
+
+  async findById(id: number){
+    return this.prisma.players.findUnique({where: {
+      id: id
+    }})
+  }
+
   async updateStatus(playerId: number, hasFolded: boolean): Promise<players> {
     return this.prisma.players.update({
       where: { id: playerId },
@@ -32,7 +39,7 @@ export class PlayerService {
       throw new Error('UnexpectedError');
     } 
   }
-  async update(userid: number, data: Prisma.pockerUpdateInput): Promise<players> {
+  async update(userid: number, data: Prisma.pokerUpdateInput): Promise<players> {
       return this.prisma.players.update({ where: { userid }, data });
     }
 }
