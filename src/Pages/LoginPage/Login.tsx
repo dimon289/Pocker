@@ -20,17 +20,18 @@ function Login(){
 
     function ValideteAllInputs():boolean{
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        let error_text = ""
         if(email.length === 0){
-            setError(error+"\nНевведено email")   
+            error_text +="\nНевведено email"   
         }
         if(password.length === 0){
-            setError(error+"\nНевведено пароль")
+            error_text +="\nНевведено пароль"
         }
-        if(error.length !== 0){
-            return false
+        if(!emailPattern.test(email)){
+            error_text +="\nВведіть коректний email!"
         }
-        else if(!emailPattern.test(email)){
-            setError("Введіть коректний email!");
+        if(error_text.length !== 0){
+            setError(error_text)
             return false
         }
         setError("")
@@ -81,11 +82,11 @@ function Login(){
                     className="w-full p-3 mt-1 rounded-md border border-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
         
-                {error.length !== 0 && <p className="text-red-500 font-semibold mt-2">{error}</p>}
+                {error.length !== 0 && <p className="text-red-500 font-semibold mt-2 error_text" >{error}</p>}
         
                 <button
                     onClick={async () => buttnfunc()}
-                    className="w-full bg-gray-500 text-white font-bold py-2 mt-4 rounded-md transition-all hover:bg-gray-600 hover:scale-105 flex items-center justify-center"
+                    className="w-full bg-gray-500 text-white font-bold py-2 mt-4 rounded-md transition-all hover:bg-gray-600 hover:scale-105 flex items-center justify-center Loginbutton"
                 >
                     Submit
                 </button>
