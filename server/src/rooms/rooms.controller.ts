@@ -13,6 +13,10 @@ export class RoomsController {
 
   @Post('join')
   async joinRoom(@Body() joinRoomDto: JoinRoomDto) {
-    return this.roomsService.joinRoom(joinRoomDto);
+  }
+  
+  async getRoomByID(roomid: number) {
+    return this.roomsService.findRoom(roomid)
   }
 }
+

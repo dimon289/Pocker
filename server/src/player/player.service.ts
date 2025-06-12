@@ -1,41 +1,38 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service';
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma.service';
+import { players, Prisma } from '@prisma/client';
 import { CreatePlayerDto, UpdatePlayerDto } from './player.dto';
-
+import { RoomsService } from '../rooms/rooms.service'
 
 @Injectable()
 export class PlayerService {
-    constructor(private readonly prisma:PrismaService){}
-    async createPlayer(data: CreatePlayerDto) {
-        return this.prisma.players.create({
-            data: {
-                userid: data.userid,
-                cards: data.cards,
-                roomid: data.roomid,
-            },
-        });
-        }
+  constructor(private readonly prisma: PrismaService, roomService: RoomsService) {}
 
-    async getPlayerByUserId(userid: number) {
-        const player = await this.prisma.players.findUnique({
-            where: { userid },
-        });
-        if (!player) {
-            throw new NotFoundException('Player not found');
+  async updateStatus(playerId: number, hasFolded: boolean): Promise<players> {
+    return this.prisma.players.update({
+      where: { id: playerId },
+      data: { status: hasFolded },
+    });
+  }
+
+  
+
+  async create(dto: CreatePlayerDto) {
+    try {
+      return await this.prisma.players.findUnique({where: {userid: dto.userid}}) || this.prisma.players.create({
+        data:{
+          userid: dto.userid,
+          cards: dto.cards,
+          roomid: dto.roomid,
+          status: false
         }
-        return player;
-    }
-    
-    async updatePlayer(userid: number, data: UpdatePlayerDto) {
-        return this.prisma.players.update({
-            where: { userid },
-            data,
-        });
-    }
-    
-        async deletePlayer(userid: number) {
-        return this.prisma.players.delete({
-            where: { userid },
-        });
+      });
+    } catch (error) {
+      console.error('Create player error:', error);
+      throw new Error('UnexpectedError');
+    } 
+  }
+  async update(userid: number, data: Prisma.pockerUpdateInput): Promise<players> {
+      return this.prisma.players.update({ where: { userid }, data });
     }
 }

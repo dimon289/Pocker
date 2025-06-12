@@ -7,7 +7,6 @@ export class CreatePlayerDto {
     userid: number;
   
     @IsArray()
-    @Length(2, 2, { each: true })
     cards: string[];
   
     @IsInt()
@@ -18,7 +17,7 @@ export type TCreatePlayerDto = Partial<CreatePlayerDto>
 
   export class UpdatePlayerDto {
     @IsArray()
-    @Length(2, 2, { each: true })
+    @Length(2)
     @IsOptional()
     cards?: string[];
   

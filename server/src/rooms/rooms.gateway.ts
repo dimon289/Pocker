@@ -1,130 +1,170 @@
-import { Prisma } from '@prisma/client';
-import {
-  SubscribeMessage,
-  WebSocketGateway,
-  WebSocketServer,
-  OnGatewayConnection,
-  MessageBody,
-  ConnectedSocket,
-} from '@nestjs/websockets';
+import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket, OnGatewayConnection } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { PrismaService } from '../prisma.service';
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma.service';
+import { PlayerService } from '../player/player.service';
+import { PockerService } from '../pocker/pocker.service';
+import { StepService } from '../step/step.service';
+import { error } from 'console';
 
-@WebSocketGateway({ namespace: '/rooms' })
+@WebSocketGateway({
+  cors: { origin: 'http://142.93.175.150/' }, // Налаштуй CORS відповідно до потреб
+})
+
+@WebSocketGateway({ namespace: '/rooms', cors: true })
 @Injectable()
 export class RoomsGateway implements OnGatewayConnection {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly prisma: PrismaService) {}
-
   private roomReadyStatus: Map<string, Set<string>> = new Map();
   private roomTimers: Map<string, NodeJS.Timeout> = new Map();
-  private userSockets: Map<string, Socket> = new Map();
+  private playerSockets: Map<string, Socket> = new Map();
 
-  handleConnection(client: Socket) {
-    const userID = client.handshake.query.userID as string;
-    if (userID) {
-      this.userSockets.set(userID, client);
-    }
-    console.log(`Client connected: ${client.id}`);
-  }
+  constructor(  
+    private readonly prisma: PrismaService,
+    private readonly playersService: PlayerService,
+    private readonly pockerService: PockerService,
+    private readonly stepService: StepService
+  ) {}
 
-  @SubscribeMessage('joinRoom')
-  handleJoinRoom(@MessageBody() data: { roomID: string; userID: string }, @ConnectedSocket() client: Socket) {
-    client.join(data.roomID);
-    if (!this.roomReadyStatus.has(data.roomID)) {
-      this.roomReadyStatus.set(data.roomID, new Set());
-    }
-    client.emit('joinedRoom', { success: true });
-  }
+  private SocketUseridMap = new Map<Socket, number>();
+  private RoomTableMap = new Map<number, number>();
 
-  @SubscribeMessage('ready')
-  async handleReady(@MessageBody() data: { roomID: string; userID: string }) {
-    const readySet = this.roomReadyStatus.get(data.roomID);
-    if (readySet) {
-      readySet.add(data.userID);
-      this.server.to(data.roomID).emit('readyUpdate', Array.from(readySet));
+  async handleConnection(client: Socket) {
+    const { wsUserId, wsRoomId } = client.handshake.auth;
+    let roomId: number;
+    let userId: number;
 
-      if (readySet.size === 2 && !this.roomTimers.has(data.roomID)) {
-        const timer = setTimeout(async () => {
-          this.roomTimers.delete(data.roomID);
-          this.server.to(data.roomID).emit('startGame', { message: 'Game is starting!' });
-
-          const roomID = parseInt(data.roomID);
-          const readyUserIDs: number[] = Array.from(readySet).map((id) => parseInt(id));
-
-          const suits = ['♥', '♦', '♠', '♣'];
-          const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'j', 'q', 'k', 'a'];
-          let deck: string[] = suits.flatMap((suit) => ranks.map((rank) => `${suit}${rank}`));
-
-          const drawCard = (): string => {
-            const index = Math.floor(Math.random() * deck.length);
-            const card = deck[index];
-            deck.splice(index, 1);
-            return card;
-          };
-
-          const createdPlayers = await Promise.all(
-            readyUserIDs.map(async (userID) => {
-              const playerCards = [drawCard(), drawCard()];
-              const player = await this.prisma.players.create({
-                data: {
-                  userid: userID,
-                  cards: playerCards,
-                  roomid: roomID,
-                },
-              });
-              const socket = this.userSockets.get(userID.toString());
-              if (socket) {
-                socket.emit('playerCards', { playerID: player.id, cards: playerCards });
-              }
-              return player;
-            })
-          );
-
-          const playerIDs = createdPlayers.map((p) => p.id);
-          const tableCards = [drawCard(), drawCard(), drawCard(), drawCard(), drawCard()];
-
-          const createdPocker = await this.prisma.pocker.create({
-            data: {
-              roomid: roomID,
-              playersid: playerIDs,
-              cards: tableCards,
-              bank: 0,
-            },
-          });
-
-          const thisPlayer = createdPlayers[Math.floor(Math.random() * createdPlayers.length)];
-          const nextPlayer = createdPlayers[(createdPlayers.indexOf(thisPlayer) + 1) % createdPlayers.length];
-
-          const maxBet = new Prisma.Decimal(0.05);
-
-          const step = await this.prisma.step.create({
-            data: {
-              pockerid: createdPocker.id,
-              playerid: thisPlayer.id,
-              next_playerid: nextPlayer.id,
-              bet: 0,
-              maxbet: maxBet,
-              steptype: 'PreFlop',
-            },
-          });
-
-          await this.prisma.pocker.update({
-            where: { id: createdPocker.id },
-            data: {
-              step: {
-                connect: { id: step.id },
-              },
-            },
-          });
-        }, 10000);
-
-        this.roomTimers.set(data.roomID, timer);
-        this.server.to(data.roomID).emit('countdownStarted', { seconds: 10 });
+    try {
+      if (!wsUserId) {
+        client.emit('connection_error', { reason: 'missing userId' });
+        client.disconnect(true);
+        return;
+      }else if(!wsRoomId) {
+        client.emit('connection_error', { reason: 'missing roomId' });
+        client.disconnect(true);
+        return;
       }
+
+      userId = Number(wsUserId);
+      roomId = Number(wsRoomId);
+
+      if (isNaN(userId) || isNaN(roomId)) {
+        throw new Error();
+      }
+    } catch (error) {
+      client.emit('connection_error', { reason: 'wrong data' });
+      client.disconnect(true);
+      return;
     }
+    
+    client.data.userId = userId;
+    client.data.roomId = roomId;
+
+    const roomExists = this.server.sockets.adapter.rooms.has(wsRoomId);
+    if (!roomExists) {
+      this.SocketUseridMap.set(client, userId);
+      client.join(wsRoomId);
+      let TableId = await this.handleTableCreate(roomId)
+      this.RoomTableMap.set(client.data.roomId, TableId)
+    }
+
+    this.SocketUseridMap.set(client, userId);
+    client.join(wsRoomId);
+
+    this.server.to(wsRoomId).emit('userJoined', { userId });
+  }
+
+  async handleTableCreate(roomId: number) {
+    this.pockerService.create({
+      roomid: roomId, 
+      playersid: [], 
+      cards:[],
+      bank: 0,
+    })
+    return (await this.pockerService.findByRoomId(roomId)).id
+  }
+
+  
+
+
+
+  async handleDisconnect(client: Socket) {
+    const userId = client.data.userId;
+    const roomId = client.data.roomId;
+
+    if (!userId || !roomId) {
+      console.warn('Missing user or room info on disconnect');
+      return;
+    }
+    
+    const room = await this.prisma.room.findUnique({
+      where: { id: roomId },
+      select: { usersid: true },
+    });
+
+    const updatedUsers = room!.usersid.filter((id) => id !== userId);
+
+    this.prisma.room.update({
+      where: {id: Number(client.rooms)},
+      data: {
+        usersid: updatedUsers
+      }
+    })
+    console.log(`Client disconnected: ${client.id}`);
+  }
+  
+
+
+
+
+
+  @SubscribeMessage('joinTable')
+    async handleJoinTable(client: Socket) {
+    const roomId = client.data.roomId
+    const userId = client.data.userId
+    const roomPlayers = (await this.pockerService.findByRoomId(roomId)).playersid
+    const player = await this.playersService.create({
+      userid: userId,
+      cards:[],
+      roomid: roomId
+    })
+    roomPlayers.push(player.id)
+    this.pockerService.updatePlayers(roomId, roomPlayers)
+
+    this.server.to(roomId).emit('playerJoined', { roomPlayers });
+
+    if(roomPlayers.length>=2)
+      this.handleGameStart(client, roomPlayers)
+
+  }
+
+  async handleGameStart(client: Socket, roomPlayers: number[]){
+    // Формуємо колоду карт
+    const suits = ['♥', '♦', '♠', '♣'];
+    const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '1', 'J', 'Q', 'K', 'A'];
+    let deck: string[] = suits.flatMap(suit => ranks.map(rank => `${suit}${rank}`));
+
+    const drawCard = () => {
+      const idx = Math.floor(Math.random() * deck.length);
+      const card = deck[idx];
+      deck.splice(idx, 1);
+      return card;
+    };
+
+    const pockerId = this.RoomTableMap.get(client.data.roomId)
+
+    this.pockerService.update(pockerId!, {
+      cards: [drawCard(),drawCard(),drawCard(),drawCard(),drawCard()]
+    })
+
+    await Promise.all(
+      roomPlayers.map(playerId => 
+        this.playersService.update(playerId, {
+          cards: [drawCard(), drawCard()]
+        })
+      )
+    );
   }
 }

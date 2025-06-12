@@ -1,4 +1,3 @@
-
 import { Controller, Get, Body, Post, ValidationPipe, UsePipes, Query, BadRequestException, UnauthorizedException, Delete, Patch, UseGuards, Request } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto, UpdateUserDto} from 'src/User/user.dto';
@@ -29,11 +28,6 @@ export class UserController {
   @Get('name')
   findName(@Query('name') name: string){
     return this.userService.findName(name)
-  }
-
-  @Get('auth')
-  Auth(@Query('email') email: string, @Query('password') password: string) {
-    return this.userService.Auth(email, password);
   }
 
   @Post()
