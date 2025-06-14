@@ -36,6 +36,7 @@ const RoomPage: React.FC = () => {
         wsRoomId: roomId,
       },
       transports: ['websocket'],
+      withCredentials: true,
     });
 
     setSocket(newSocket);
