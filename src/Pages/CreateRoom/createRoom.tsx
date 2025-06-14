@@ -33,7 +33,7 @@ function CreateRoom() {
                 url:`${apiUrl}/api/rooms/create`,
                 data:{
                     name:  roomName,
-                    userID: [userid],
+                    userID: userid,
                     password : roomPassword,
                 }
             })
