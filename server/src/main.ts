@@ -30,9 +30,22 @@ async function bootstrap() {
       }
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
   });
 
+    // CORS для WebSocket (socket.io)
+    const server = app.getHttpServer();
+    const io = require('socket.io')(server, {
+      cors: {
+        origin: allowedOrigins,
+        methods: ['GET', 'POST'],
+        credentials: true
+      }
+    });
+
+    // Тут приклад базового хендлера підключення
+    io.on('connection', (socket) => {
+      console.log('🟢 Socket connected:', socket.id);
+    });
   await app.listen(process.env.PORT ?? 3210, '0.0.0.0');
 }
 bootstrap();
