@@ -1,186 +1,132 @@
 import "./style.css";
-import { useState} from "react";
-// import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "../../Store";
-import axios from "axios";
-// import { useEffect, useRef,} from "react";
-// import { useParams } from 'react-router-dom';
-// import { io, Socket } from 'socket.io-client';
+import  axios  from "axios";
+import { io, Socket } from "socket.io-client";
 
 interface RoomProps {
-    data: {
-        id: number;
-        name: string;
-        usersid: string[];
-        status: string; 
-    };
+  data: {
+    id: number;
+    name: string;
+    usersid: string[];
+    status: string;
+  };
 }
-// type ServerToClientEvents = {
-//   userJoined: (data: { userId: string }) => void;
-// };
-
-// type ClientToServerEvents = {
-//   joinRoom: (data: { roomId: string; userId: string }) => void;
-// };
-
-
-
-// export const RoomPage = () => {
-//   const { roomId } = useParams();
-//   const [users, setUsers] = useState<string[]>([]);
-
-//   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
-
-  
-
-//   return (
-//     <div>
-//       <h2>Room ID: {roomId}</h2>
-//       <h3>Users in room:</h3>
-//       <ul>
-//         {users.map((id, index) => (
-//           <li key={index}>{id}</li>
-//         ))}
-//       </ul>interface RoomProps {
-//     data: {
-//         id: number;
-//         name: string;
-//         usersid: string[];
-//         status: string; 
-//     };
-// }
-// type ServerToClientEvents = {
-//   userJoined: (data: { userId: string }) => void;
-// };
-
-// type ClientToServerEvents = {
-//   joinRoom: (data: { roomId: string; userId: string }) => void;
-// };
-
-
-
-// export const RoomPage = () => {
-//   const { roomId } = useParams();
-//   const [users, setUsers] = useState<string[]>([]);
-
-//   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
-
-  
-
-//   return (
-//     <div>
-//       <h2>Room ID: {roomId}</h2>
-//       <h3>Users in room:</h3>
-//       <ul>
-//         {users.map((id, index) => (
-//           <li key={index}>{id}</li>
-//         ))}
-//       </ul>
-//     </div>
-//   );
-// };
-//     </div>
-//   );
-// };
-
 
 const apiUrl = import.meta.env.VITE_API_URL;
-export default function Room({data}: RoomProps) {
-    // useEffect(() => {
-    //     const socket = io(`${apiUrl}`);
+const socket: Socket = io(apiUrl, { autoConnect: false });
 
-    //     socketRef.current = socket;
+export default function Room({ data }: RoomProps) {
+  const name = useSelector((state: RootState) => state.user.userName);
 
-    //     socket.on('userjoined', () => {
-    //         console.log('WebSocket connected');
+  const [isVisible, setIsVisible] = useState(false);
+  const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
-    //         // Надіслати joinRoom
-    //         socket.emit('joinRoom', {
-    //           Підтвердить  roomId: roomId!,
-    //             userId,
-    //             });
-    //         });
+  // Приєднання до WebSocket і прослуховування подій
+  useEffect(() => {
+    socket.on("joinRoomSuccess", (roomId: number) => {
+      console.log("Успішно приєдналися до кімнати:", roomId);
+      setErrorMessage("");
+      // Перехід на сторінку кімнати
+      window.location.href = "/RoomPage"; // або useNavigate, якщо хочеш
+    });
 
-    //         socket.on('userJoined', ({ userId }) => {
-    //             console.log(`${userId} joined the room`);
-    //             setUsers(prev => [...prev, userId]);
-    //         });
+    socket.on("joinRoomError", (error: { message: string }) => {
+      setErrorMessage(error.message);
+    });
 
-    //         return () => {
-    //             socket.disconnect();
-    //         };
-    //     }, [roomId]);
+    return () => {
+      socket.off("joinRoomSuccess");
+      socket.off("joinRoomError");
+    };
+  }, []);
 
+  // Функція приєднання через WS
+  const connectToLobby = async () => {
+    try {
+      // Авторизація — можна отримати userId з redux або localStorage
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setErrorMessage("Відсутній токен авторизації");
+        return;
+      }
 
-    const name = useSelector((state:RootState) => state.user.userName)
-    const connectToLobby = async()=>{
-        const roomsUsers = await axios({
-            method: "get", 
-            url: `${apiUrl}/rooms?${localStorage.getItem("roomid")}`
-        }).then(response => {
-            return response.data[0]?.usersid;
-        });
+      // Твоя логіка отримання userId — наприклад через axios, можна кешувати
+      const { data: authData } = await axios.get(`${apiUrl}/api/user/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const { data: userData } = await axios.get(`${apiUrl}/api/user/email`, {
+        params: { email: authData.email },
+      });
+      const userId = userData.id;
 
-        const token = localStorage.getItem("token")
-        const auth = await axios({
-                        method: "get",
-                        url: `${apiUrl}/api/user/profile`,
-                        headers:{
-                            'Authorization':`Bearer ${token}`
-                        }
-        })
-        const userid = await axios({
-            method: "get",
-            url: `${apiUrl}/user/email?email=${auth.data.email}`
-        }).then(response => response.data.id)  
-        await roomsUsers.push(userid) 
-        
-        await axios({
-            method: "patch",
-            url: `${apiUrl}/rooms/${localStorage.getItem("roomid")}`,
-            params: {
-                password: password.length !== 0 ? localStorage.getItem("roompassword") || password : ""
-            },
-            data: {
-                usersid: roomsUsers,
-            }})
-                .then(response => console.log(response.data))
-                .catch(error => console.error(error));
-        }
-        
-    // const navigate = useNavigate();
-    const [isVisible, setIsVisible] = useState<Boolean>(false) 
-    const [password, setpassword] = useState<String>("")
-    return (
-        <div className="roomcell">
-            
-            {isVisible && (<div className="RoomPassword">
-                <input type="password" onChange={(e) => {setpassword(e.target.value)}} />
-                <div>
-                    <button onClick={() => {
-                        localStorage.setItem("roomid",`${data.id}`)
-                        localStorage.setItem("roompassword",`${password}`)
-                        connectToLobby()  
-                    }}>Підтвердить</button>
-                    <button onClick={() =>{
-                        setIsVisible(false)
-                    }} >Закрить</button>
-                </div> 
-            </div>)}
-            
-            <div className="room-id">Room ID: {data.id}</div>
-            <div className="room-name">Name: {data.name}</div>
-            <div className="room-status">Status: {data.status}</div>
-            <div className="users-room-name">
-                <div>Players:</div>
-                <div>
-                    {data.usersid.map((user, index) => (
-                        <div key={index}>{user}</div>
-                    ))}
-                </div>
-            </div>
-            {name.length !== 0 && <button className="connect" onClick={() => {setIsVisible(true)}}>Connect</button>}
+      socket.auth = { token }; // можна передати токен для авторизації WS
+      if (!socket.connected) {
+        socket.connect();
+      }
+
+      socket.emit("joinRoom", {
+        roomId: data.id,
+        password,
+        userId,
+      });
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("Помилка під час приєднання");
+    }
+  };
+
+  return (
+    <div className="roomcell">
+      {isVisible && (
+        <div className="RoomPassword">
+          <input
+            type="password"
+            placeholder="Введіть пароль кімнати"
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <div>
+            <button
+              onClick={() => {
+                localStorage.setItem("roomid", `${data.id}`);
+                localStorage.setItem("roompassword", password);
+                connectToLobby();
+              }}
+            >
+              Підтвердити
+            </button>
+            <button
+              onClick={() => {
+                setIsVisible(false);
+                setErrorMessage("");
+              }}
+            >
+              Закрити
+            </button>
+          </div>
+          {errorMessage && <p className="error-message">{errorMessage}</p>}
         </div>
-    );
+      )}
+
+      <div className="room-id">Room ID: {data.id}</div>
+      <div className="room-name">Name: {data.name}</div>
+      <div className="room-status">Status: {data.status}</div>
+      <div className="users-room-name">
+        <div>Players:</div>
+        <div>
+          {data.usersid.map((user, index) => (
+            <div key={index}>{user}</div>
+          ))}
+        </div>
+      </div>
+
+      {name.length !== 0 && (
+        <button className="connect" onClick={() => setIsVisible(true)}>
+          Connect
+        </button>
+      )}
+    </div>
+  );
 }

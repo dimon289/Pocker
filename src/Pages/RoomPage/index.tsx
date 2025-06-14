@@ -1,21 +1,127 @@
+import React, { useEffect, useState } from 'react';
+import { io, Socket } from 'socket.io-client';
 
-const players = [
-  { id: 1, name: 'Alice', avatar: 'https://randomuser.me/api/portraits/women/44.jpg', cards: ['🂠', '🂠'], seat: 'top' },
-  { id: 2, name: 'Bob', avatar: 'https://randomuser.me/api/portraits/men/32.jpg', cards: ['🂠', '🂠'], seat: 'left' },
-  { id: 3, name: 'Carol', avatar: 'https://randomuser.me/api/portraits/women/68.jpg', cards: ['🂠', '🂠'], seat: 'right' },
-];
+interface Player {
+  id: number;
+  userid: number;
+  cards: string[];
+  roomid: number;
+  status: boolean;
+  name: string;
+  avatar: string;
+  seat: 'top' | 'left' | 'right' | 'bottom';
+}
 
-const communityCards = ['🂮', '🂾', '🃎', '🂧', '🃇'];
+interface RoomPageProps {
+  userId: number;
+  roomId: number;
+}
 
-const yourCards = ['🃍', '🃑'];
-const potChips = 320.00;
+const RoomPage: React.FC<RoomPageProps> = ({ userId, roomId }) => {
+  const [socket, setSocket] = useState<Socket | null>(null);
 
-const PokerTable = () => {
+  // Стан гри
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [yourCards, setYourCards] = useState<string[]>([]);
+  const [communityCards, setCommunityCards] = useState<string[]>([]);
+  const [potChips, setPotChips] = useState<number>(0);
+  const [messages, setMessages] = useState<string[]>([]);
+  const [gameStatus, setGameStatus] = useState<string>('Waiting for players...');
+
+  useEffect(() => {
+    const newSocket = io('http://142.93.175.150/rooms', {
+      auth: {
+        wsUserId: userId,
+        wsRoomId: roomId,
+      },
+      transports: ['websocket'],
+    });
+
+    setSocket(newSocket);
+
+    newSocket.on('connect', () => {
+      addMessage('Connected to the room');
+    });
+
+    newSocket.on('disconnect', () => {
+      addMessage('Disconnected from the room');
+    });
+
+    newSocket.on('userJoined', ({ userId }) => {
+      addMessage(`User ${userId} joined the room.`);
+    });
+
+    newSocket.on('playerJoined', ({ players: roomPlayers }: { players: Player[] }) => {
+      setPlayers(roomPlayers);
+      addMessage(`Players updated: ${roomPlayers.length} players in room.`);
+    });
+
+    newSocket.on('yourCards', ({ cards }: { cards: string[] }) => {
+      setYourCards(cards);
+      addMessage('You received your cards');
+    });
+
+    newSocket.on('communityCardsUpdate', ({ cards }: { cards: string[] }) => {
+      setCommunityCards(cards);
+      addMessage('Community cards updated');
+    });
+
+    newSocket.on('potUpdate', ({ pot }: { pot: number }) => {
+      setPotChips(pot);
+      addMessage(`Pot updated: ${pot.toFixed(2)}`);
+    });
+
+    newSocket.on('gameStatus', ({ status }: { status: string }) => {
+      setGameStatus(status);
+    });
+
+    newSocket.on('connection_error', (err) => {
+      addMessage(`Connection error: ${err.reason}`);
+    });
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [userId, roomId]);
+
+  function addMessage(msg: string) {
+    setMessages((prev) => [...prev, msg]);
+  }
+
+  // Обробники кнопок ставок
+  const handleBet = (amount: number) => {
+    if (socket) {
+      socket.emit('myStep', amount);
+      addMessage(`Bet made: ${amount}`);
+    }
+  };
+
+  const handleCall = () => {
+    if (socket) {
+      socket.emit('myStep', 'call');
+      addMessage('Call made');
+    }
+  };
+
+  const handleFold = () => {
+    if (socket) {
+      socket.emit('myStep', 'fold');
+      addMessage('Fold made');
+    }
+  };
+
+  const handleJoinTable = () => {
+    if (socket) {
+      socket.emit('joinTable');
+      addMessage('Trying to join the table...');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-[#242424] text-white pt-[60px] flex flex-col items-center justify-center">
-      {/* Стіл */}
+      {/* Poker Table */}
       <div className="relative w-[80vw] h-[80vh] bg-green-900 border-[10px] border-yellow-400 rounded-full flex items-center justify-center shadow-2xl">
-        
+
         {/* Community Cards */}
         <div className="flex gap-6 text-6xl z-10">
           {communityCards.map((card, index) => (
@@ -23,13 +129,13 @@ const PokerTable = () => {
           ))}
         </div>
 
-        {/* Пот (фішки) */}
+        {/* Pot */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-16 flex flex-col items-center text-white">
           <div className="text-4xl">♣</div>
           <div className="text-lg font-semibold">Pot: {potChips.toFixed(2)}</div>
         </div>
 
-        {/* Гравці по краях */}
+        {/* Players */}
         {players.map((player) => {
           const baseClasses = 'absolute flex flex-col items-center';
           const cardClasses = 'flex gap-2 text-5xl mt-2';
@@ -44,6 +150,9 @@ const PokerTable = () => {
               break;
             case 'right':
               positionClasses = 'right-4 top-1/2 -translate-y-1/2';
+              break;
+            case 'bottom':
+              positionClasses = 'bottom-20 left-1/2 -translate-x-1/2';
               break;
             default:
               break;
@@ -66,7 +175,7 @@ const PokerTable = () => {
           );
         })}
 
-        {/* Карти користувача */}
+        {/* Your Cards */}
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2">
           <div className="flex gap-4 text-6xl">
             {yourCards.map((card, idx) => (
@@ -76,25 +185,48 @@ const PokerTable = () => {
         </div>
       </div>
 
-      {/* Кнопки та фішки гравця */}
-        <div className="mt-6 flex flex-col items-center">
-                <div className="flex gap-6">
-                    <button className="bg-gradient-to-br from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2">
-                    💰 <span>Bet</span>
-                    </button>
-                    <button className="bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2">
-                    ☎️ <span>Call</span>
-                    </button>
-                    <button className="bg-gradient-to-br from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2">
-                    ❌ <span>Fold</span>
-                    </button>
-            </div>
+      {/* Controls */}
+      <div className="mt-6 flex flex-col items-center">
+        <button
+          onClick={handleJoinTable}
+          className="mb-4 bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-4 px-12 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105"
+        >
+          Join Table
+        </button>
+
+        <div className="flex gap-6">
+          <button
+            onClick={() => handleBet(10)}
+            className="bg-gradient-to-br from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2"
+          >
+            💰 <span>Bet 10</span>
+          </button>
+          <button
+            onClick={handleCall}
+            className="bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2"
+          >
+            ☎️ <span>Call</span>
+          </button>
+          <button
+            onClick={handleFold}
+            className="bg-gradient-to-br from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2"
+          >
+            ❌ <span>Fold</span>
+          </button>
         </div>
+      </div>
 
+      {/* Messages */}
+      <div className="mt-6 w-[80vw] max-h-40 overflow-y-auto border border-gray-600 rounded p-4 bg-[#1a1a1a] text-sm">
+        {messages.map((msg, idx) => (
+          <div key={idx}>{msg}</div>
+        ))}
+      </div>
 
-
+      {/* Game status */}
+      <div className="mt-4 text-yellow-300 font-semibold text-lg">{gameStatus}</div>
     </div>
   );
 };
 
-export default PokerTable;
+export default RoomPage;
