@@ -24,5 +24,10 @@ export class RoomsService {
     const room = await this.prisma.room.findUnique({where: {id: roomid}})
     return room || false 
   }
+
+  async findAllRoom(roomid: number) {
+    const rooms = await this.prisma.room.findMany()
+    return rooms|| false 
+  }
   
 }

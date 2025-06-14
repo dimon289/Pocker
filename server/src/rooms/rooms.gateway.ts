@@ -233,6 +233,15 @@ export class RoomsGateway implements OnGatewayConnection {
             steptype: steptype,
           })
           lastStep = (await this.stepService.findLastActiveByPockerId(pockerId))!
+
+          await this.prisma.balance.create({
+            data:{
+              stepid:lastStep.id,
+              userid:user!.id,
+              balancetype: false,
+              bet: bet
+            }
+          })
           resolve()
         });
       }).then(()=>{
@@ -247,6 +256,9 @@ export class RoomsGateway implements OnGatewayConnection {
       const socket = await this.UseridSocketMap.get(player!.userid)!
       this.server.to(String(socket.data.roomId)).emit('playerTurn', {player});
 
+      if (socket.data.isActive === false)
+        return;
+
       await new Promise<void>((resolve) => {
         let resolved = false;
         const timeout = setTimeout(() => {
@@ -260,6 +272,7 @@ export class RoomsGateway implements OnGatewayConnection {
         socket.on('myStep', async (bet: number) => {
           const user = await this.usersService.finByPlayer(player!)
           const maxBet = Number(user!.mybalance)
+
           if (bet>Number(user!.mybalance))
             bet = maxBet
           
