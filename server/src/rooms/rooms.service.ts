@@ -11,7 +11,7 @@ export class RoomsService {
     const room = await this.prisma.room.create({
       data: {
         name: dto.name,
-        password: dto.pass ?? '',
+        password: dto.password ?? '',
         usersid: [dto.userID],
         status: 'Waiting'
       },
@@ -25,9 +25,9 @@ export class RoomsService {
     return room || false 
   }
 
-  async findAllRoom(roomid: number) {
+  async findAllRooms() {
     const rooms = await this.prisma.room.findMany()
-    return rooms|| false 
+    return rooms 
   }
   
 
