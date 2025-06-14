@@ -30,27 +30,15 @@ function CreateRoom() {
         else{
             const room = await axios({
                 method:"post",
-                url:`${apiUrl}/api/rooms`,
+                url:`${apiUrl}/api/rooms/create`,
                 data:{
                     name:  roomName,
                     usersid: [userid],
-                    status: "Waiting",
                     password : roomPassword,
                 }
             })
-            localStorage.setItem("roomid",room.data.id)
-            localStorage.setItem("roompassword",roomPassword)
-            const player = await axios({
-                method: "post",
-                url : `${apiUrl}/api/player`,
-                data: {
-                    userid: userid,
-                    roomid: room.data.id,
-                    cards: ["00", "00"]
-                }
-            })
-            console.log(player)
-            navigete("/")
+            localStorage.setItem("roomid", room.data.roomid)
+            navigete("/RoomPage")
         }
     };
 

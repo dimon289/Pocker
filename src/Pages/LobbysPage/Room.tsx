@@ -1,9 +1,11 @@
 import "./style.css";
-import { useState } from "react";
+import { useState , useEffect, useRef,} from "react";
 // import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "../../Store";
 import axios from "axios";
+import { useParams } from 'react-router-dom';
+import { io, Socket } from 'socket.io-client';
 
 interface RoomProps {
     data: {
@@ -13,6 +15,57 @@ interface RoomProps {
         status: string; 
     };
 }
+type ServerToClientEvents = {
+  userJoined: (data: { userId: string }) => void;
+};
+
+type ClientToServerEvents = {
+  joinRoom: (data: { roomId: string; userId: string }) => void;
+};
+
+export const RoomPage = () => {
+  const { roomId } = useParams();
+  const [users, setUsers] = useState<string[]>([]);
+
+  const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+
+  useEffect(() => {
+    const socket = io(`${apiUrl}`);
+
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('WebSocket connected');
+
+      // Надіслати joinRoom
+      socket.emit('joinRoom', {
+        roomId: roomId!,
+        userId,
+      });
+    });
+
+    socket.on('userJoined', ({ userId }) => {
+      console.log(`${userId} joined the room`);
+      setUsers(prev => [...prev, userId]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [roomId]);
+
+  return (
+    <div>
+      <h2>Room ID: {roomId}</h2>
+      <h3>Users in room:</h3>
+      <ul>
+        {users.map((id, index) => (
+          <li key={index}>{id}</li>
+        ))}
+      </ul>
+    </div>
+  );
+};
 const apiUrl = import.meta.env.VITE_API_URL;
 export default function Room({data}: RoomProps) {
     const name = useSelector((state:RootState) => state.user.userName)
@@ -37,18 +90,19 @@ export default function Room({data}: RoomProps) {
             url: `${apiUrl}/user/email?email=${auth.data.email}`
         }).then(response => response.data.id)  
         await roomsUsers.push(userid) 
+        
         await axios({
             method: "patch",
             url: `${apiUrl}/rooms/${localStorage.getItem("roomid")}`,
             params: {
-                password: password.length !== 0 ? localStorage.getItem("roompassword") || password : undefined
+                password: password.length !== 0 ? localStorage.getItem("roompassword") || password : ""
             },
             data: {
                 usersid: roomsUsers,
             }})
                 .then(response => console.log(response.data))
                 .catch(error => console.error(error));
-    }
+        }
     // const navigate = useNavigate();
     const [isVisible, setIsVisible] = useState<Boolean>(false) 
     const [password, setpassword] = useState<String>("")
