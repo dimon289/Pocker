@@ -17,7 +17,7 @@ interface RoomProps {
 }
 
 const apiUrl = import.meta.env.VITE_API_URL;
-const socket: Socket = io(apiUrl, { autoConnect: false });
+const socket: Socket = io(`${apiUrl}/rooms`, { autoConnect: false });
 
 export default function Room({ data }: RoomProps) {
   const navigate = useNavigate();
