@@ -8,10 +8,11 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { StepModule } from './step/step.module';
 import { UserService } from './User/user.service';
+import { PrismaModule } from './prisma.module';
 
 
 @Module({
-  imports: [UserModule, ConfigModule.forRoot({isGlobal: true}), PlayerModule, RoomsModule, PockerModule, ScheduleModule.forRoot(), AuthModule, StepModule],
+  imports: [UserModule, ConfigModule.forRoot({isGlobal: true}), PlayerModule, RoomsModule, PockerModule, ScheduleModule.forRoot(), AuthModule, StepModule, PrismaModule],
   controllers: [],
   providers: [UserService],
 })
