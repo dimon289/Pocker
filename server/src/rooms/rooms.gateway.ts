@@ -11,7 +11,7 @@ import { error } from 'console';
 import { first } from 'rxjs';
 
 @WebSocketGateway({
-  cors: { origin: 'http://142.93.175.150/' }, // Налаштуй CORS відповідно до потреб
+  cors: { origin: 'http://142.93.175.150' }, // Налаштуй CORS відповідно до потреб
 })
 
 @WebSocketGateway({ namespace: '/rooms', cors: true })
