@@ -30,7 +30,7 @@ const router = createBrowserRouter([
         element:<CreateRoomPage/>
       },
       {
-        path:"RoomPage",
+        path:"RoomPage/:roomId",
         element:<RoomPage/>
       }
     ]

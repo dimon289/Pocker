@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+const apiUrl = import.meta.env.VITE_API_URL;
 
 interface Player {
   id: number;
@@ -12,12 +14,11 @@ interface Player {
   seat: 'top' | 'left' | 'right' | 'bottom';
 }
 
-interface RoomPageProps {
-  userId: number;
-  roomId: number;
-}
 
-const RoomPage: React.FC<RoomPageProps> = ({ userId, roomId }) => {
+
+const RoomPage: React.FC = () => {
+  const { roomId } = useParams<{ roomId: string }>(); // беремо roomId з URL
+  const userId = Number(localStorage.getItem("userId")); 
   const [socket, setSocket] = useState<Socket | null>(null);
 
   // Стан гри
@@ -29,7 +30,7 @@ const RoomPage: React.FC<RoomPageProps> = ({ userId, roomId }) => {
   const [gameStatus, setGameStatus] = useState<string>('Waiting for players...');
 
   useEffect(() => {
-    const newSocket = io('http://142.93.175.150/rooms', {
+    const newSocket = io(`${apiUrl}/rooms`, {
       auth: {
         wsUserId: userId,
         wsRoomId: roomId,

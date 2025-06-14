@@ -51,7 +51,7 @@ function CreateRoom() {
       // Можна додати обробку підтвердження joinRoom по socket.on
 
       // Переходимо на сторінку кімнати
-      navigate("/RoomPage");
+      navigate(`/RoomPage/${createdRoomId}`);
     } catch (error) {
       console.error("Помилка створення кімнати:", error);
       setErrmessage("Сталася помилка при створенні кімнати");

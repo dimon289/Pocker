@@ -4,6 +4,8 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../Store";
 import  axios  from "axios";
 import { io, Socket } from "socket.io-client";
+import { useNavigate } from "react-router-dom";
+
 
 interface RoomProps {
   data: {
@@ -18,6 +20,8 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const socket: Socket = io(apiUrl, { autoConnect: false });
 
 export default function Room({ data }: RoomProps) {
+  const navigate = useNavigate();
+
   const name = useSelector((state: RootState) => state.user.userName);
 
   const [isVisible, setIsVisible] = useState(false);
@@ -30,7 +34,7 @@ export default function Room({ data }: RoomProps) {
       console.log("Успішно приєдналися до кімнати:", roomId);
       setErrorMessage("");
       // Перехід на сторінку кімнати
-      window.location.href = "/RoomPage"; // або useNavigate, якщо хочеш
+      navigate(`/RoomPage/${roomId}`);// або useNavigate, якщо хочеш
     });
 
     socket.on("joinRoomError", (error: { message: string }) => {
