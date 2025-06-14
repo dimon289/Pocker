@@ -1,11 +1,12 @@
 import "./style.css";
-import { useState , useEffect, useRef,} from "react";
+import { useState} from "react";
 // import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "../../Store";
 import axios from "axios";
-import { useParams } from 'react-router-dom';
-import { io, Socket } from 'socket.io-client';
+// import { useEffect, useRef,} from "react";
+// import { useParams } from 'react-router-dom';
+// import { io, Socket } from 'socket.io-client';
 
 interface RoomProps {
     data: {
@@ -15,59 +16,103 @@ interface RoomProps {
         status: string; 
     };
 }
-type ServerToClientEvents = {
-  userJoined: (data: { userId: string }) => void;
-};
+// type ServerToClientEvents = {
+//   userJoined: (data: { userId: string }) => void;
+// };
 
-type ClientToServerEvents = {
-  joinRoom: (data: { roomId: string; userId: string }) => void;
-};
+// type ClientToServerEvents = {
+//   joinRoom: (data: { roomId: string; userId: string }) => void;
+// };
 
-export const RoomPage = () => {
-  const { roomId } = useParams();
-  const [users, setUsers] = useState<string[]>([]);
 
-  const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
 
-  useEffect(() => {
-    const socket = io(`${apiUrl}`);
+// export const RoomPage = () => {
+//   const { roomId } = useParams();
+//   const [users, setUsers] = useState<string[]>([]);
 
-    socketRef.current = socket;
+//   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
 
-    socket.on('connect', () => {
-      console.log('WebSocket connected');
+  
 
-      // Надіслати joinRoom
-      socket.emit('joinRoom', {
-        roomId: roomId!,
-        userId,
-      });
-    });
+//   return (
+//     <div>
+//       <h2>Room ID: {roomId}</h2>
+//       <h3>Users in room:</h3>
+//       <ul>
+//         {users.map((id, index) => (
+//           <li key={index}>{id}</li>
+//         ))}
+//       </ul>interface RoomProps {
+//     data: {
+//         id: number;
+//         name: string;
+//         usersid: string[];
+//         status: string; 
+//     };
+// }
+// type ServerToClientEvents = {
+//   userJoined: (data: { userId: string }) => void;
+// };
 
-    socket.on('userJoined', ({ userId }) => {
-      console.log(`${userId} joined the room`);
-      setUsers(prev => [...prev, userId]);
-    });
+// type ClientToServerEvents = {
+//   joinRoom: (data: { roomId: string; userId: string }) => void;
+// };
 
-    return () => {
-      socket.disconnect();
-    };
-  }, [roomId]);
 
-  return (
-    <div>
-      <h2>Room ID: {roomId}</h2>
-      <h3>Users in room:</h3>
-      <ul>
-        {users.map((id, index) => (
-          <li key={index}>{id}</li>
-        ))}
-      </ul>
-    </div>
-  );
-};
+
+// export const RoomPage = () => {
+//   const { roomId } = useParams();
+//   const [users, setUsers] = useState<string[]>([]);
+
+//   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+
+  
+
+//   return (
+//     <div>
+//       <h2>Room ID: {roomId}</h2>
+//       <h3>Users in room:</h3>
+//       <ul>
+//         {users.map((id, index) => (
+//           <li key={index}>{id}</li>
+//         ))}
+//       </ul>
+//     </div>
+//   );
+// };
+//     </div>
+//   );
+// };
+
+
 const apiUrl = import.meta.env.VITE_API_URL;
 export default function Room({data}: RoomProps) {
+    // useEffect(() => {
+    //     const socket = io(`${apiUrl}`);
+
+    //     socketRef.current = socket;
+
+    //     socket.on('userjoined', () => {
+    //         console.log('WebSocket connected');
+
+    //         // Надіслати joinRoom
+    //         socket.emit('joinRoom', {
+    //           Підтвердить  roomId: roomId!,
+    //             userId,
+    //             });
+    //         });
+
+    //         socket.on('userJoined', ({ userId }) => {
+    //             console.log(`${userId} joined the room`);
+    //             setUsers(prev => [...prev, userId]);
+    //         });
+
+    //         return () => {
+    //             socket.disconnect();
+    //         };
+    //     }, [roomId]);
+
+
     const name = useSelector((state:RootState) => state.user.userName)
     const connectToLobby = async()=>{
         const roomsUsers = await axios({
@@ -103,6 +148,7 @@ export default function Room({data}: RoomProps) {
                 .then(response => console.log(response.data))
                 .catch(error => console.error(error));
         }
+        
     // const navigate = useNavigate();
     const [isVisible, setIsVisible] = useState<Boolean>(false) 
     const [password, setpassword] = useState<String>("")
@@ -116,7 +162,7 @@ export default function Room({data}: RoomProps) {
                         localStorage.setItem("roomid",`${data.id}`)
                         localStorage.setItem("roompassword",`${password}`)
                         connectToLobby()  
-                    }}>Потдвердить</button>
+                    }}>Підтвердить</button>
                     <button onClick={() =>{
                         setIsVisible(false)
                     }} >Закрить</button>

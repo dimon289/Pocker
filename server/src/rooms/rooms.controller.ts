@@ -21,6 +21,7 @@ export class RoomsController {
     return await this.roomsService.findAllRooms()
   }
 
+  @Get('getbyid')
   async getRoomByID(roomid: number) {
     return await this.roomsService.findRoom(roomid)
   }
