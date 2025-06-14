@@ -7,6 +7,7 @@ import { PrismaService } from 'src/prisma.service';
 @Module({
   controllers: [PockerController],
   providers: [PockerService, PrismaService],
+  exports:[PockerService]
 })
 export class PockerModule {}
  
