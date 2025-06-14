@@ -53,8 +53,6 @@ export class PockerService {
   }
 
   evaluateHand(cards: string[]): { name: string; rank: number } {
-    // Примітивна реалізація — замініть своєю логікою
-    // Наприклад: обчисліть силу руки, визначте комбінацію (пара, стріт, флеш тощо)
     return { name: 'High Card', rank: 1 }; // Заглушка
   }
 

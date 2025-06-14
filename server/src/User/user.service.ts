@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma.service';
 import { CreateUserDto, UpdateUserDto } from 'src/User/user.dto';
 import * as bcrypt from 'bcrypt';
 import { players } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class UserService {
@@ -39,7 +40,7 @@ export class UserService {
     }
 
     async finByPlayer(player:players){
-        this.prisma.users.findUnique({where: { id: player.userid}})
+        return await this.prisma.users.findUnique({where: { id: player.userid}})
     }
 
     async createUser(dto: CreateUserDto) {
@@ -140,4 +141,14 @@ export class UserService {
     
         this.onlineUsers.set(email, timeout);
       }
+
+    async updateBalance(id: number, balance: number){ 
+        return this.prisma.users.update({
+            where:{
+                id: id
+            },
+            data: {
+                mybalance: balance}
+            })
+    }
 }

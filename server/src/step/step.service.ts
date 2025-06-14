@@ -10,7 +10,6 @@ export class StepService {
   async create(data: {
     pockerid: number;
     playerid: number;
-    next_playerid: number;
     bet: number;
     maxbet: number;
     steptype: steptype;
@@ -25,6 +24,15 @@ export class StepService {
       throw new NotFoundException(`Step with id ${id} not found`);
     }
     return st;
+  }
+
+  async findLastActiveByPockerId(id: number){
+    return await this.prisma.step.findFirst({
+      where:{
+        pockerid: id,
+        steptype: {not: steptype.Fold}
+      },
+      orderBy:{id: 'desc'}})
   }
 
   // Оновити крок (наприклад, змінити ставку або тип фази)
@@ -63,7 +71,6 @@ export class StepService {
       where: { id: currentStepId },
       data: {
         playerid: next.id,
-        next_playerid: activePlayers[(nextIdx + 1) % activePlayers.length].id,
         bet: 0,
         maxbet: Number(next.users.mybalance ?? 0),
       },
