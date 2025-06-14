@@ -7,5 +7,6 @@ import { RoomsService } from '../rooms/rooms.service'
 @Module({
   controllers: [PlayerController],
   providers: [PlayerService, PrismaService, RoomsService],
+  exports: [PlayerService],
 })
 export class PlayerModule {}

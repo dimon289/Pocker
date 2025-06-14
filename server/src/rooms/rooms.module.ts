@@ -6,6 +6,7 @@ import { RoomsGateway } from './rooms.gateway';
 import { PlayerService } from 'src/player/player.service';
 
 @Module({
+  imports:[PlayerService],
   controllers: [RoomsController],
   providers: [RoomsService, PrismaService, RoomsGateway,PlayerService],
 })
