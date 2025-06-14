@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./style.css";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 
 const apiUrl = import.meta.env.VITE_API_URL;
-const socket = io(apiUrl); // ініціалізація WebSocket
+const socket: Socket = io(apiUrl, { autoConnect: false }); // Ініціалізуємо socket, але не підключаємо одразу
 
 function CreateRoom() {
   const navigate = useNavigate();
@@ -13,45 +13,79 @@ function CreateRoom() {
   const [roomPassword, setRoomPassword] = useState("");
   const [errmessage, setErrmessage] = useState("");
 
+  useEffect(() => {
+    // Обробка успішного приєднання
+    socket.on("joinRoomSuccess", (roomId: number) => {
+      setErrmessage("");
+      // Перехід на сторінку кімнати
+      navigate(`/RoomPage/${roomId}`);
+    });
+
+    // Обробка помилки при приєднанні
+    socket.on("joinRoomError", (error: { message: string }) => {
+      setErrmessage(error.message);
+    });
+
+    // Очистка слухачів при демонтовані
+    return () => {
+      socket.off("joinRoomSuccess");
+      socket.off("joinRoomError");
+    };
+  }, [navigate]);
+
   const submitCreateRoom = async () => {
     try {
-      if (roomName.length === 0) {
+      if (roomName.trim().length === 0) {
         setErrmessage("Ви не ввели назву кімнати");
         return;
       }
 
       const token = localStorage.getItem("token");
+      if (!token) {
+        setErrmessage("Відсутній токен авторизації");
+        return;
+      }
+
+      // Отримуємо профіль користувача
       const auth = await axios.get(`${apiUrl}/api/user/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const user = await axios.get(`${apiUrl}/api/user/email?email=${auth.data.email}`);
+      const user = await axios.get(`${apiUrl}/api/user/email`, {
+        params: { email: auth.data.email },
+      });
       const userid = user.data.id;
 
-      // Створюємо кімнату по HTTP
-      const response = await axios.post(`${apiUrl}/api/rooms/create`, {
-        name: roomName,
-        userID: userid,
-        password: roomPassword,
-      });
+      // Створюємо кімнату через API
+      const response = await axios.post(
+        `${apiUrl}/api/rooms/create`,
+        {
+          name: roomName,
+          userID: userid,
+          password: roomPassword,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-      const createdRoomId = response.data.roomid; // отримуємо ID кімнати
-
-      // Зберігаємо в localStorage
+      const createdRoomId = response.data.roomid;
       localStorage.setItem("roomid", createdRoomId);
       localStorage.setItem("roompassword", roomPassword);
 
-      // Одразу відправляємо подію joinRoom через WebSocket
+      // Встановлюємо авторизацію для сокета
+      socket.auth = { token };
+
+      if (!socket.connected) {
+        socket.connect();
+      }
+
+      // Відправляємо подію joinRoom
       socket.emit("joinRoom", {
         roomId: createdRoomId,
         userId: userid,
         password: roomPassword,
       });
-
-      // Можна додати обробку підтвердження joinRoom по socket.on
-
-      // Переходимо на сторінку кімнати
-      navigate(`/RoomPage/${createdRoomId}`);
     } catch (error) {
       console.error("Помилка створення кімнати:", error);
       setErrmessage("Сталася помилка при створенні кімнати");
@@ -61,13 +95,16 @@ function CreateRoom() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="w-full max-w-md p-8 rounded-xl shadow-lg createRoomPage">
-        <h2 className="text-2xl font-semibold text-white text-center mb-6">Create a Room</h2>
+        <h2 className="text-2xl font-semibold text-white text-center mb-6">
+          Create a Room
+        </h2>
 
         <div className="mb-4">
           <label className="block text-gray-300 mb-2">Room Name</label>
           <input
             type="text"
             className="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:ring-2 focus:ring-green-500 outline-none"
+            value={roomName}
             onChange={(e) => setRoomName(e.target.value)}
           />
         </div>
@@ -77,11 +114,14 @@ function CreateRoom() {
           <input
             type="password"
             className="w-full px-4 py-2 bg-gray-700 text-white rounded-md focus:ring-2 focus:ring-green-500 outline-none"
+            value={roomPassword}
             onChange={(e) => setRoomPassword(e.target.value)}
           />
         </div>
 
-        {errmessage.length !== 0 && <p>{errmessage}</p>}
+        {errmessage && (
+          <p className="text-red-500 mb-4 font-semibold">{errmessage}</p>
+        )}
 
         <button
           onClick={submitCreateRoom}
