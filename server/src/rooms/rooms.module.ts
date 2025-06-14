@@ -9,7 +9,7 @@ import { StepModule } from 'src/step/step.module';
 import { UserModule } from 'src/User/user.module';
 
 @Module({
-  imports: [PrismaService, PlayerModule, PockerModule, StepModule, UserModule],
+  imports: [PlayerModule, PockerModule, StepModule, UserModule],
   controllers: [RoomsController],
   providers: [RoomsService, PrismaService, RoomsGateway],
 })
