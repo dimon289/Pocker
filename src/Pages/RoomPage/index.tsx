@@ -14,7 +14,7 @@ interface Player {
   status: boolean;
   name: string;
   avatar: string;
-  seat: 'top' | 'left' | 'right' | 'bottom';
+  // seat: 'top' | 'left' | 'right' | 'bottom';
 }
 
 const RoomPage: React.FC = () => {
@@ -170,12 +170,18 @@ const RoomPage: React.FC = () => {
         </div>
 
         {/* Players */}
-        {players.map((player) => {
+        {players.map((player, index) => {
           const baseClasses = 'absolute flex flex-col items-center';
           const cardClasses = 'flex gap-2 text-5xl mt-2';
 
+          const currentPlayerIndex = players.findIndex(p => p.userid === userId);
+          const rotatedIndex = (index - currentPlayerIndex + players.length) % players.length;
+
+          const seatPositions = ['bottom', 'left', 'top', 'right'];
+          const seat = seatPositions[rotatedIndex % seatPositions.length];
+
           let positionClasses = '';
-          switch (player.seat) {
+          switch (seat) {
             case 'top':
               positionClasses = 'top-4 left-1/2 -translate-x-1/2';
               break;
@@ -187,8 +193,6 @@ const RoomPage: React.FC = () => {
               break;
             case 'bottom':
               positionClasses = 'bottom-20 left-1/2 -translate-x-1/2';
-              break;
-            default:
               break;
           }
 
@@ -208,7 +212,6 @@ const RoomPage: React.FC = () => {
             </div>
           );
         })}
-
         {/* Your Cards */}
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2">
           <div className="flex gap-4 text-6xl">
