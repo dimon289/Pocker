@@ -10,11 +10,10 @@ import { StepService } from '../step/step.service';
 import { error } from 'console';
 import { first } from 'rxjs';
 
-@WebSocketGateway({
-  cors: { origin: 'http://142.93.175.150' }, // Налаштуй CORS відповідно до потреб
+@WebSocketGateway({ 
+  namespace: '/rooms',
+  cors: { origin: 'http://142.93.175.150', credentials: true }
 })
-
-@WebSocketGateway({ namespace: '/rooms', cors: true })
 @Injectable()
 export class RoomsGateway implements OnGatewayConnection {
   @WebSocketServer()
