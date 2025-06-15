@@ -42,14 +42,12 @@ function CreateRoom() {
           userID: userid,
           password: roomPassword,
         },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
       )
 
-      const createdRoomId = response.data.roomid;
+      const createdRoomId = response.data.roomd;
+      console.log(response)
       localStorage.setItem("roomid", createdRoomId);
-      navigate(`/RoomPage/${response.data.roomId}`)
+      navigate(`/RoomPage/${localStorage.getItem("roomid")}`)
 
     } catch (error) {
       console.error("Помилка створення кімнати:", error);
