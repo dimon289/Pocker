@@ -9,7 +9,7 @@ export class RoomsController {
   @Post('create')
   async createRoom(@Body() createRoomDto: CreateRoomDto) {
     const room = await this.roomsService.createRoom(createRoomDto);
-    return { data: room };
+    return  room ;
   }
 
   @Post('join')
