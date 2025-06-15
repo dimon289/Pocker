@@ -38,7 +38,7 @@ const RoomPage: React.FC = () => {
   const [isYourTurn, setIsYourTurn] = useState<boolean>(false);
 
   useEffect(() => {
-    const newSocket = io(`${apiUrl}`, {
+    const newSocket = io(`${apiUrl}/rooms`, {
       auth: {
         wsUserId: userId,
         wsRoomId: roomId,
