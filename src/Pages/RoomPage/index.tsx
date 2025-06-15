@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import { RootState } from "../../Store";
 import { io, Socket } from 'socket.io-client';
+
 const apiUrl = import.meta.env.VITE_API_URL;
 
 interface Player {
@@ -16,11 +17,10 @@ interface Player {
   seat: 'top' | 'left' | 'right' | 'bottom';
 }
 
-
-
 const RoomPage: React.FC = () => {
-  const { roomId } = useParams<{ roomId: string }>(); // беремо roomId з URL
-  const userId = Number(useSelector((state:RootState) => state.user.userName)); 
+  const { roomId } = useParams<{ roomId: string }>();
+  const userId = Number(useSelector((state: RootState) => state.user.userName));
+
   const [socket, setSocket] = useState<Socket | null>(null);
 
   // Стан гри
@@ -31,8 +31,13 @@ const RoomPage: React.FC = () => {
   const [messages, setMessages] = useState<string[]>([]);
   const [gameStatus, setGameStatus] = useState<string>('Waiting for players...');
 
+  // Чи приєднаний гравець до столу
+  const [hasJoinedTable, setHasJoinedTable] = useState<boolean>(false);
+
+  // Чи зараз ваш хід (можна розширити під логіку з сервера)
+  const [isYourTurn, setIsYourTurn] = useState<boolean>(false);
+
   useEffect(() => {
-    
     const newSocket = io(`${apiUrl}`, {
       auth: {
         wsUserId: userId,
@@ -50,6 +55,8 @@ const RoomPage: React.FC = () => {
 
     newSocket.on('disconnect', () => {
       addMessage('Disconnected from the room');
+      setHasJoinedTable(false);
+      setIsYourTurn(false);
     });
 
     newSocket.on('userJoined', ({ userId }) => {
@@ -80,6 +87,24 @@ const RoomPage: React.FC = () => {
       setGameStatus(status);
     });
 
+    // Подія, що підтверджує приєднання до столу
+    newSocket.on('joinedTable', () => {
+      setHasJoinedTable(true);
+      addMessage('Ви приєдналися до гри.');
+    });
+
+    // Приклад події для позначення вашого ходу (потрібно реалізувати на сервері)
+    newSocket.on('yourTurn', () => {
+      setIsYourTurn(true);
+      addMessage('Ваш хід!');
+    });
+
+    // Коли хід закінчився
+    newSocket.on('turnEnded', () => {
+      setIsYourTurn(false);
+      addMessage('Хід завершено.');
+    });
+
     newSocket.on('connection_error', (err) => {
       addMessage(`Connection error: ${err.reason}`);
     });
@@ -95,30 +120,34 @@ const RoomPage: React.FC = () => {
 
   // Обробники кнопок ставок
   const handleBet = (amount: number) => {
-    if (socket) {
+    if (socket && isYourTurn) {
       socket.emit('myStep', amount);
       addMessage(`Bet made: ${amount}`);
+      setIsYourTurn(false); // хід зроблено
     }
   };
 
   const handleCall = () => {
-    if (socket) {
+    if (socket && isYourTurn) {
       socket.emit('myStep', 'call');
       addMessage('Call made');
+      setIsYourTurn(false);
     }
   };
 
   const handleFold = () => {
-    if (socket) {
+    if (socket && isYourTurn) {
       socket.emit('myStep', 'fold');
       addMessage('Fold made');
+      setIsYourTurn(false);
     }
   };
 
   const handleJoinTable = () => {
     if (socket) {
       socket.emit('joinTable');
-      addMessage('Trying to join the table...');
+      addMessage('Надіслано запит на приєднання...');
+      // setHasJoinedTable(true); // Тепер чекаємо підтвердження від сервера
     }
   };
 
@@ -192,33 +221,43 @@ const RoomPage: React.FC = () => {
 
       {/* Controls */}
       <div className="mt-6 flex flex-col items-center">
-        <button
-          onClick={handleJoinTable}
-          className="mb-4 bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-4 px-12 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105"
-        >
-          Join Table
-        </button>
+        {!hasJoinedTable && (
+          <button
+            onClick={handleJoinTable}
+            className="mb-4 bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-4 px-12 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105"
+          >
+            Join Table
+          </button>
+        )}
 
-        <div className="flex gap-6">
-          <button
-            onClick={() => handleBet(10)}
-            className="bg-gradient-to-br from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2"
-          >
-            💰 <span>Bet 10</span>
-          </button>
-          <button
-            onClick={handleCall}
-            className="bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2"
-          >
-            ☎️ <span>Call</span>
-          </button>
-          <button
-            onClick={handleFold}
-            className="bg-gradient-to-br from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2"
-          >
-            ❌ <span>Fold</span>
-          </button>
-        </div>
+        {hasJoinedTable && (
+          <div className="flex gap-6">
+            <button
+              onClick={() => handleBet(10)}
+              disabled={!isYourTurn}
+              className={`bg-gradient-to-br from-yellow-400 to-yellow-600 text-black font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
+                ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-yellow-500 hover:to-yellow-700'}`}
+            >
+              💰 <span>Bet 10</span>
+            </button>
+            <button
+              onClick={handleCall}
+              disabled={!isYourTurn}
+              className={`bg-gradient-to-br from-blue-500 to-blue-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
+                ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-blue-600 hover:to-blue-800'}`}
+            >
+              ☎️ <span>Call</span>
+            </button>
+            <button
+              onClick={handleFold}
+              disabled={!isYourTurn}
+              className={`bg-gradient-to-br from-red-500 to-red-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
+                ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-red-600 hover:to-red-800'}`}
+            >
+              ❌ <span>Fold</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Messages */}
