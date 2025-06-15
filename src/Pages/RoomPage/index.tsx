@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import { RootState } from "../../Store";
 import { io, Socket } from 'socket.io-client';
-const apiUrl = import.meta.env.WS_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 interface Player {
   id: number;
