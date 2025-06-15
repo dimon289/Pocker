@@ -71,21 +71,7 @@ function CreateRoom() {
 
       const createdRoomId = response.data.roomid;
       localStorage.setItem("roomid", createdRoomId);
-      localStorage.setItem("roompassword", roomPassword);
 
-      // Встановлюємо авторизацію для сокета
-      socket.auth = { token };
-
-      if (!socket.connected) {
-        socket.connect();
-      }
-
-      // Відправляємо подію joinRoom
-      socket.emit("joinRoom", {
-        roomId: createdRoomId,
-        userId: userid,
-        password: roomPassword,
-      });
     } catch (error) {
       console.error("Помилка створення кімнати:", error);
       setErrmessage("Сталася помилка при створенні кімнати");

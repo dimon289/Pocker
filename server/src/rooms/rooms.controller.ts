@@ -15,7 +15,7 @@ export class RoomsController {
   @Post('join')
   async joinRoom(@Body() joinRoomDto: JoinRoomDto) {
   }
-  
+
   @Get('all')
   async getAll(){
     return await this.roomsService.findAllRooms()
