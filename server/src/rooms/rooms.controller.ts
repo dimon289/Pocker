@@ -8,8 +8,8 @@ export class RoomsController {
 
   @Post('create')
   async createRoom(@Body() createRoomDto: CreateRoomDto) {
-    await this.roomsService.createRoom(createRoomDto);
-    return 
+    const room = await this.roomsService.createRoom(createRoomDto);
+    return { data: room };
   }
 
   @Post('join')
