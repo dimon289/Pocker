@@ -44,7 +44,7 @@ function CreateRoom() {
         },
       )
 
-      const createdRoomId = response.data.roomd;
+      const createdRoomId = response.data.id;
       console.log(response)
       localStorage.setItem("roomid", createdRoomId);
       navigate(`/RoomPage/${localStorage.getItem("roomid")}`)
