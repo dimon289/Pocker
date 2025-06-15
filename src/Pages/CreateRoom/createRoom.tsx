@@ -1,37 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState} from "react";
 import "./style.css";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { io, Socket } from "socket.io-client";
 
 const apiUrl = import.meta.env.VITE_API_URL;
-const socket: Socket = io(`${apiUrl}` , { autoConnect: false,  withCredentials: true}); // Ініціалізуємо socket, але не підключаємо одразу
 
 function CreateRoom() {
   const navigate = useNavigate();
   const [roomName, setRoomName] = useState("");
   const [roomPassword, setRoomPassword] = useState("");
   const [errmessage, setErrmessage] = useState("");
-
-  useEffect(() => {
-    // Обробка успішного приєднання
-    socket.on("joinRoomSuccess", (roomId: number) => {
-      setErrmessage("");
-      // Перехід на сторінку кімнати
-      navigate(`/RoomPage/${roomId}`);
-    });
-
-    // Обробка помилки при приєднанні
-    socket.on("joinRoomError", (error: { message: string }) => {
-      setErrmessage(error.message);
-    });
-
-    // Очистка слухачів при демонтовані
-    return () => {
-      socket.off("joinRoomSuccess");
-      socket.off("joinRoomError");
-    };
-  }, [navigate]);
 
   const submitCreateRoom = async () => {
     try {
@@ -67,10 +45,11 @@ function CreateRoom() {
         {
           headers: { Authorization: `Bearer ${token}` },
         }
-      );
+      )
 
       const createdRoomId = response.data.roomid;
       localStorage.setItem("roomid", createdRoomId);
+      navigate(`/RoomPage/${response.data.roomId}`)
 
     } catch (error) {
       console.error("Помилка створення кімнати:", error);
