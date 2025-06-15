@@ -147,7 +147,7 @@ const RoomPage: React.FC = () => {
     if (socket) {
       socket.emit('joinTable');
       addMessage('Надіслано запит на приєднання...');
-      // setHasJoinedTable(true); // Тепер чекаємо підтвердження від сервера
+      setHasJoinedTable(true); // Тепер чекаємо підтвердження від сервера
     }
   };
 
