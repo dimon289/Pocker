@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
+import { RootState } from "../../Store";
 import { io, Socket } from 'socket.io-client';
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -18,7 +20,7 @@ interface Player {
 
 const RoomPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>(); // беремо roomId з URL
-  const userId = Number(localStorage.getItem("userId")); 
+  const userId = Number(useSelector((state:RootState) => state.user.userName)); 
   const [socket, setSocket] = useState<Socket | null>(null);
 
   // Стан гри
@@ -30,7 +32,8 @@ const RoomPage: React.FC = () => {
   const [gameStatus, setGameStatus] = useState<string>('Waiting for players...');
 
   useEffect(() => {
-    const newSocket = io(`${apiUrl}/rooms`, {
+    
+    const newSocket = io(`${apiUrl}/api/rooms`, {
       auth: {
         wsUserId: userId,
         wsRoomId: roomId,

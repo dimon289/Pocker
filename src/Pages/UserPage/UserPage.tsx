@@ -1,7 +1,7 @@
 import {Link, useNavigate} from "react-router-dom"
 import { useState} from "react";
 import { useSelector , useDispatch } from "react-redux";
-import { changeName, changeAvatar, changeDescription} from "../../Slices/userSlice";
+import { changeName, changeAvatar, changeDescription, ChangeUserId} from "../../Slices/userSlice";
 import { RootState } from "../../Store";
 import "./style.css";
 import axios from 'axios';
@@ -72,6 +72,7 @@ function User(){
                 url:`${apiUrl}/api/user?email=${auth.data.email}&password=${inputPassword}`,
             }).then((e) => {console.log("ABOBA " + e)
                 localStorage.removeItem("token")
+                dispatch(ChangeUserId(""))
                 dispatch(changeName(""))
                 navigate("/");
             })
@@ -161,7 +162,8 @@ function User(){
         <div className="LogOutandDelete">
             <Link to={"/"}>
                 <button onClick={()=>
-                {dispatch(changeName(""))
+                {
+                    dispatch(changeName(""))
                     localStorage.removeItem("token")
                 }}>Log out</button>
             </Link>

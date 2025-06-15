@@ -1,7 +1,7 @@
 import {useNavigate} from "react-router-dom"
 import { useState } from "react";
 import { useDispatch} from "react-redux";
-import {changeName, changeAvatar, changeDescription, changeEmail, increaseBalance} from "../../Slices/userSlice";
+import {changeName, changeAvatar, changeDescription, changeEmail, increaseBalance, ChangeUserId} from "../../Slices/userSlice";
 
 import axios from 'axios';
 import "./style.css"
@@ -53,6 +53,7 @@ function Login(){
             if(user.data.avatar == null){
                 user.data.avatar =""
             }
+            dispatch(ChangeUserId(user.data.userID))
             dispatch(changeName(user.data.nickname))   
             dispatch(changeEmail(user.data.email))
             dispatch(changeDescription(user.data.description))

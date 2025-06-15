@@ -12,7 +12,7 @@ import { first } from 'rxjs';
 
 @WebSocketGateway({ 
   namespace: '/rooms',
-  cors: { origin: 'http://142.93.175.150', credentials: true }
+  origin: 'http://142.93.175.150'
 })
 @Injectable()
 export class RoomsGateway implements OnGatewayConnection {
