@@ -33,7 +33,7 @@ const RoomPage: React.FC = () => {
 
   useEffect(() => {
     
-    const newSocket = io(`${apiUrl}/rooms`, {
+    const newSocket = io(`${apiUrl}`, {
       auth: {
         wsUserId: userId,
         wsRoomId: roomId,

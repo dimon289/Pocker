@@ -6,7 +6,7 @@ import { io, Socket } from "socket.io-client";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 const wsUrl = import.meta.env.WS_API_URL;
-const socket: Socket = io(`${wsUrl}/rooms` , { autoConnect: false,  withCredentials: true}); // Ініціалізуємо socket, але не підключаємо одразу
+const socket: Socket = io(`${wsUrl}` , { autoConnect: false,  withCredentials: true}); // Ініціалізуємо socket, але не підключаємо одразу
 
 function CreateRoom() {
   const navigate = useNavigate();
