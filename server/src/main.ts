@@ -1,52 +1,56 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
+import * as dotenv from 'dotenv';
 
-ConfigModule.forRoot();
+dotenv.config(); // Альтернатива ConfigModule.forRoot()
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
   const frontendUrl = configService.get<string>('FRONTEND_URL');
+  const port = process.env.PORT ?? 3210;
 
   app.setGlobalPrefix('api');
 
-  // Якщо FRONTEND_URL в .env містить кілька адрес через кому, наприклад:
-  // FRONTEND_URL=http://localhost:3000,http://142.93.175.150
   const allowedOrigins = frontendUrl
     ? frontendUrl.split(',').map(origin => origin.trim())
     : [];
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Якщо запит без origin (наприклад, curl або same-origin), дозволяємо
-      if (!origin) return callback(null, true);
+      if (!origin) return callback(null, true); // Дозволити curl/серверні запити
 
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error(`CORS policy does not allow access from the origin ${origin}`));
+        callback(new Error(`CORS policy does not allow access from origin: ${origin}`));
       }
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
-    // CORS для WebSocket (socket.io)
-    const server = app.getHttpServer();
-    const io = require('socket.io')(server, {
-      cors: {
-        origin: allowedOrigins,
-        methods: ['GET', 'POST'],
-        credentials: true
-      }
-    });
+  // Підключення Socket.IO з підтримкою CORS
+  const server = app.getHttpServer();
+  const io = require('socket.io')(server, {
+    cors: {
+      origin: allowedOrigins,
+      methods: ['GET', 'POST'],
+      credentials: true,
+    },
+  });
 
-    // Тут приклад базового хендлера підключення
-    io.on('connection', (socket) => {
-      console.log('🟢 Socket connected:', socket.id);
+  io.on('connection', (socket) => {
+    console.log('🟢 Socket connected:', socket.id);
+
+    socket.on('disconnect', () => {
+      console.log('🔴 Socket disconnected:', socket.id);
     });
-  await app.listen(process.env.PORT ?? 3210, '0.0.0.0');
+  });
+
+  await app.listen(port, '0.0.0.0');
+  console.log(`🚀 Server is running on http://localhost:${port}`);
 }
 bootstrap();
