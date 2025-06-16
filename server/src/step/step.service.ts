@@ -34,6 +34,15 @@ export class StepService {
       },
       orderBy:{id: 'desc'}})
   }
+  async findPlayerLastStepByPockerId(pockerid, playerId: number){
+    return await this.prisma.step.findFirst({
+      where:{
+        pockerid: pockerid,
+        playerid: playerId,
+        steptype: {not: steptype.Fold}
+      },
+      orderBy:{id: 'desc'}})
+  }
 
   // Оновити крок (наприклад, змінити ставку або тип фази)
   async update(params: {

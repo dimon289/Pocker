@@ -30,5 +30,9 @@ export class RoomsService {
     return rooms 
   }
   
+  async deleteById(id: number){
+    await this.prisma.room.delete({where: {id}})
+    return true;
+  }
 
 }

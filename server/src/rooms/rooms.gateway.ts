@@ -10,10 +10,11 @@ import { StepService } from '../step/step.service';
 import { error } from 'console';
 import { first } from 'rxjs';
 
-@WebSocketGateway({ 
-  namespace: '/rooms',
+@WebSocketGateway({
   cors: { origin: 'http://142.93.175.150', credentials: true }
 })
+
+@WebSocketGateway({ namespace: '/rooms', cors: true })
 @Injectable()
 export class RoomsGateway implements OnGatewayConnection {
   @WebSocketServer()
@@ -179,10 +180,16 @@ export class RoomsGateway implements OnGatewayConnection {
     this.handlePreflop( roomId, pockerId!, roomPlayers)
   }
 
+
+  async handleFold(playerId: number){
+    this.playersService.updateStatus(playerId, false)
+  }
+
   async betCircle(pockerId: number, roomPlayers: number[],lastStep: step | null = null){
     for (const playerId of roomPlayers) {
       const player = await this.playersService.findById(playerId);
       const socket = await this.UseridSocketMap.get(player!.userid)!
+      const user = await this.usersService.finByPlayer(player!)
       this.server.to(String(socket.data.roomId)).emit('playerTurn', {player});
 
       await new Promise<void>((resolve) => {
@@ -192,14 +199,20 @@ export class RoomsGateway implements OnGatewayConnection {
           resolved = true;
           socket.removeAllListeners('myStep');
           socket.data.isActive = false
-          resolve(); // ЗРОБИТИ ПРОГРАШ
+          if(!lastStep)
+            resolve()
+
+          // ЗРОБИТИ ПРОГРАШ
+          resolve(); 
         }, 30000); // 30 сек
         
         socket.removeAllListeners('myStep');
         socket.on('myStep', async (bet: number) => {
-          const user = await this.usersService.finByPlayer(player!)
+
+          const lastPlayerStep = await this.stepService.findPlayerLastStepByPockerId(pockerId,playerId)
+          
           const maxBet = Number(user!.mybalance)
-          if (bet>Number(user!.mybalance))
+          if (Number(lastPlayerStep!.maxbet)>Number(user!.mybalance)-Number(lastPlayerStep!.bet))
             bet = maxBet;
           
           let steptype: StepTypeEnum = StepTypeEnum.Fold;
@@ -233,14 +246,14 @@ export class RoomsGateway implements OnGatewayConnection {
           })
           lastStep = (await this.stepService.findLastActiveByPockerId(pockerId))!
 
-          await this.prisma.balance.create({
-            data:{
-              stepid:lastStep.id,
-              userid:user!.id,
-              balancetype: false,
-              bet: bet
-            }
-          })
+          // await this.prisma.balance.create({
+          //   data:{
+          //     stepid:lastStep.id,
+          //     userid:user!.id,
+          //     balancetype: false,
+          //     bet: bet
+          //   }
+          // })
           resolve()
         });
       }).then(()=>{
@@ -295,7 +308,7 @@ export class RoomsGateway implements OnGatewayConnection {
           if(steptype === StepTypeEnum.Check || 
              steptype === StepTypeEnum.Call  ||
              (steptype === StepTypeEnum.Allin&&Number(lastStep!.bet) >= bet)){
-             socket.emit('NoRaise')
+             socket.emit('stepError', 'No Raise')
              return;
              }
           if (resolved) return;
