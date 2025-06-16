@@ -11,14 +11,12 @@ import { error } from 'console';
 import { first } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
 
-
 @WebSocketGateway({ 
   namespace: '/rooms',
   cors: { 
     origin: 'http://localhost:5173', 
     credentials: true,
-  }
-})
+  }})
 @Injectable()
 export class RoomsGateway implements OnGatewayConnection {
   @WebSocketServer()
@@ -67,17 +65,28 @@ export class RoomsGateway implements OnGatewayConnection {
     client.data.roomId = roomId;
     client.data.isActive = false;
 
-    const roomExists = this.server.sockets.adapter.rooms.has(wsRoomId);
-    if (!roomExists) {
+    if (!this.server.sockets.adapter.rooms) {
       this.UseridSocketMap.set(userId,client);
       client.join(wsRoomId);
       let TableId = await this.handleTableCreate(roomId)
       this.RoomTableMap.set(roomId, TableId)
+    }else{
+      const roomExists = this.server.sockets.adapter.rooms.has(wsRoomId);
+      if (!roomExists) {
+        this.UseridSocketMap.set(userId,client);
+        client.join(wsRoomId);
+        let TableId = await this.handleTableCreate(roomId)
+        this.RoomTableMap.set(roomId, TableId)
+      }
     }
+
+    
+    
 
     this.UseridSocketMap.set(userId,client);
     client.join(wsRoomId);
 
+    client.emit
     this.server.to(wsRoomId).emit('userJoined', { userId });
   }
 
@@ -184,10 +193,16 @@ export class RoomsGateway implements OnGatewayConnection {
     this.handlePreflop( roomId, pockerId!, roomPlayers)
   }
 
+
+  async handleFold(playerId: number){
+    this.playersService.updateStatus(playerId, false)
+  }
+
   async betCircle(pockerId: number, roomPlayers: number[],lastStep: step | null = null){
     for (const playerId of roomPlayers) {
       const player = await this.playersService.findById(playerId);
       const socket = await this.UseridSocketMap.get(player!.userid)!
+      const user = await this.usersService.finByPlayer(player!)
       this.server.to(String(socket.data.roomId)).emit('playerTurn', {player});
 
       await new Promise<void>((resolve) => {
@@ -197,14 +212,20 @@ export class RoomsGateway implements OnGatewayConnection {
           resolved = true;
           socket.removeAllListeners('myStep');
           socket.data.isActive = false
-          resolve(); // ЗРОБИТИ ПРОГРАШ
+          if(!lastStep)
+            resolve()
+
+          // ЗРОБИТИ ПРОГРАШ
+          resolve(); 
         }, 30000); // 30 сек
         
         socket.removeAllListeners('myStep');
         socket.on('myStep', async (bet: number) => {
-          const user = await this.usersService.finByPlayer(player!)
+
+          const lastPlayerStep = await this.stepService.findPlayerLastStepByPockerId(pockerId,playerId)
+          
           const maxBet = Number(user!.mybalance)
-          if (bet>Number(user!.mybalance))
+          if (Number(lastPlayerStep!.maxbet)>Number(user!.mybalance)-Number(lastPlayerStep!.bet))
             bet = maxBet;
           
           let steptype: StepTypeEnum = StepTypeEnum.Fold;
@@ -238,14 +259,14 @@ export class RoomsGateway implements OnGatewayConnection {
           })
           lastStep = (await this.stepService.findLastActiveByPockerId(pockerId))!
 
-          await this.prisma.balance.create({
-            data:{
-              stepid:lastStep.id,
-              userid:user!.id,
-              balancetype: false,
-              bet: bet
-            }
-          })
+          // await this.prisma.balance.create({
+          //   data:{
+          //     stepid:lastStep.id,
+          //     userid:user!.id,
+          //     balancetype: false,
+          //     bet: bet
+          //   }
+          // })
           resolve()
         });
       }).then(()=>{
@@ -300,7 +321,7 @@ export class RoomsGateway implements OnGatewayConnection {
           if(steptype === StepTypeEnum.Check || 
              steptype === StepTypeEnum.Call  ||
              (steptype === StepTypeEnum.Allin&&Number(lastStep!.bet) >= bet)){
-             socket.emit('NoRaise')
+             socket.emit('stepError', 'No Raise')
              return;
              }
           if (resolved) return;
