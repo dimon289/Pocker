@@ -63,17 +63,28 @@ export class RoomsGateway implements OnGatewayConnection {
     client.data.roomId = roomId;
     client.data.isActive = false;
 
-    const roomExists = this.server.sockets.adapter.rooms.has(wsRoomId);
-    if (!roomExists) {
+    if (!this.server.sockets.adapter.rooms) {
       this.UseridSocketMap.set(userId,client);
       client.join(wsRoomId);
       let TableId = await this.handleTableCreate(roomId)
       this.RoomTableMap.set(roomId, TableId)
+    }else{
+      const roomExists = this.server.sockets.adapter.rooms.has(wsRoomId);
+      if (!roomExists) {
+        this.UseridSocketMap.set(userId,client);
+        client.join(wsRoomId);
+        let TableId = await this.handleTableCreate(roomId)
+        this.RoomTableMap.set(roomId, TableId)
+      }
     }
+
+    
+    
 
     this.UseridSocketMap.set(userId,client);
     client.join(wsRoomId);
 
+    client.emit
     this.server.to(wsRoomId).emit('userJoined', { userId });
   }
 
