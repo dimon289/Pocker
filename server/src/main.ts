@@ -32,25 +32,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Підключення Socket.IO з підтримкою CORS
-  const server = app.getHttpServer();
-  const io = require('socket.io')(server, {
-    cors: {
-      origin: allowedOrigins,
-      methods: ['GET', 'POST'],
-      credentials: true,
-    },
-  });
-
-  io.on('connection', (socket) => {
-    console.log('🟢 Socket connected:', socket.id);
-
-    socket.on('disconnect', () => {
-      console.log('🔴 Socket disconnected:', socket.id);
-    });
-  });
 
   await app.listen(port, '0.0.0.0');
-  console.log(`🚀 Server is running on http://localhost:${port}`);
 }
 bootstrap();

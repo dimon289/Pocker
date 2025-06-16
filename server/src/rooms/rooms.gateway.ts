@@ -9,10 +9,15 @@ import { PockerService } from '../pocker/pocker.service';
 import { StepService } from '../step/step.service';
 import { error } from 'console';
 import { first } from 'rxjs';
+import { ConfigService } from '@nestjs/config';
+
 
 @WebSocketGateway({ 
   namespace: '/rooms',
-  cors: { origin: 'http://142.93.175.150', credentials: true }
+  cors: { 
+    origin: 'http://localhost:5173', 
+    credentials: true,
+  }
 })
 @Injectable()
 export class RoomsGateway implements OnGatewayConnection {
@@ -48,7 +53,7 @@ export class RoomsGateway implements OnGatewayConnection {
 
       userId = Number(wsUserId);
       roomId = Number(wsRoomId);
-
+      console.log(userId + " " + roomId);
       if (isNaN(userId) || isNaN(roomId)) {
         throw new Error();
       }
