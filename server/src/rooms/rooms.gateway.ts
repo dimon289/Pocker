@@ -7,15 +7,12 @@ import { PlayerService } from '../player/player.service';
 import { UserService } from '../User/user.service';
 import { PockerService } from '../pocker/pocker.service';
 import { StepService } from '../step/step.service';
+import { RoomsService } from './rooms.service';
 import { error, table } from 'console';
 import { first } from 'rxjs';
 import e from 'express';
 
-@WebSocketGateway({
-  cors: { origin: 'http://142.93.175.150', credentials: true }
-})
-
-@WebSocketGateway({ namespace: '/rooms', cors: true })
+@WebSocketGateway({ namespace: '/rooms', cors: { origin: 'http://142.93.175.150/', credentials: true } })
 @Injectable()
 export class RoomsGateway implements OnGatewayConnection {
   @WebSocketServer()
@@ -26,7 +23,8 @@ export class RoomsGateway implements OnGatewayConnection {
     private readonly playersService: PlayerService,
     private readonly usersService: UserService,
     private readonly pockerService: PockerService,
-    private readonly stepService: StepService
+    private readonly stepService: StepService,
+    private readonly roomsServie: RoomsService,
   ) {}
 
   private UseridSocketMap = new Map<number, Socket>();
@@ -44,8 +42,9 @@ export class RoomsGateway implements OnGatewayConnection {
     client.data.userId = userId;
     this.UseridSocketMap.set(userId, client)
 
+    const roomUsers:number[] = await this.roomsServie.updateRoomUsersById(userId, roomId) 
     client.join(wsRoomId)
-    this.server.to(wsRoomId).emit('userJoined', {userId})
+    this.server.to(wsRoomId).emit('userJoined', {roomUsers})
   }
 
   async handleTableCreate(roomId: number) {
@@ -83,6 +82,10 @@ export class RoomsGateway implements OnGatewayConnection {
     console.log(`Client disconnected: ${client.id}`);
   }
 
+  async handleReconnect(client: Socket){
+    // this.UseridSocketMap.set(userId, client)
+  }
+
   @SubscribeMessage('joinTable')
     async handleJoinTable(client: Socket, userId: number) {
     const roomId = client.data.roomId
@@ -92,8 +95,12 @@ export class RoomsGateway implements OnGatewayConnection {
       roomid: roomId,
     })
     let roomPlayers = this.RoomPlayersMap.get(roomId)
-    if(roomPlayers)
-      roomPlayers.push(player)
+    if(roomPlayers){
+      if (roomPlayers.length >= 6)
+        client.emit("TableFull")
+      else
+        roomPlayers.push(player)
+    }
     else
       roomPlayers = [player]
 
@@ -172,27 +179,45 @@ export class RoomsGateway implements OnGatewayConnection {
     for (const player of roomPlayers) {
       if(!player.status) return;// skip if player is loose or fold
 
-      const socket = await this.UseridSocketMap.get(player.userid)!
+      const socket = this.UseridSocketMap.get(player.userid)!
       const user = await this.usersService.finByPlayer(player)
       
       const maxBet = Number(user!.mybalance)
       const prewBet = await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id)
       let currMaxBet: number  
-      if(prewBet)
+      if(prewBet){
         currMaxBet = maxBet-Number(prewBet.bet)
+        if (currMaxBet <= 0.05) 
+          return;
+      }
       else
         currMaxBet = maxBet
       this.server.to(String(roomId)).emit('playerTurn', currMaxBet);
 
       await new Promise<void>((resolve) => {
         let resolved = false;
-        const timeout = setTimeout(() => {
+        const timeout = setTimeout(async () => {
           if (resolved) return;
           resolved = true;
           socket.removeAllListeners('myStep');
           player.status = false
-          if(!lastStep)
-            resolve()
+          if(!prewBet){
+            lastStep = await this.stepService.create({
+              pockerid: poker.id,
+              playerid: player.id,
+              bet: 0.05,
+              maxbet: maxBet,
+              steptype: StepTypeEnum.Fold,
+            });
+            poker.bank += 0.05;
+          }
+          lastStep = await this.stepService.create({
+            pockerid: poker.id,
+            playerid: player.id,
+            bet: Number(prewBet!.bet),
+            maxbet: maxBet,
+            steptype: StepTypeEnum.Fold,
+          });
           resolve(); 
         }, 30000); // 30 сек
         
@@ -204,8 +229,107 @@ export class RoomsGateway implements OnGatewayConnection {
             bet += Number(prewBet.bet);
           if (bet > maxBet)
             bet = maxBet;
+          if (bet < 0){
+            bet = 0.05;
+            player.status = false;
+          }
           const steptype: StepTypeEnum = this.stepTypeDefine(lastStep, bet, Number(maxBet));
 
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timeout);
+          socket.removeAllListeners('myStep');
+
+          lastStep = await this.stepService.create({
+            pockerid: poker.id,
+            playerid: player.id,
+            bet: bet,
+            maxbet: maxBet,
+            steptype: steptype,
+          });
+
+          poker.bank += currentBet;
+
+          if (lastStep.steptype === StepTypeEnum.Fold)
+            player.status = false; 
+          resolve()
+        });
+      }).then(()=>{
+        this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep});
+      });
+    }
+    return lastStep
+  }
+
+  async balancingCircle(roomId: number, poker: poker, roomPlayers: players[],lastStep: step | null = null){
+    for (const player of roomPlayers) {
+      if(!player.status) return;// skip if player is loose or fold
+
+      const socket = this.UseridSocketMap.get(player.userid)!
+      const user = await this.usersService.finByPlayer(player)
+      
+      const maxBet = Number(user!.mybalance)
+      const prewBet = await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id)
+      let currMaxBet: number  
+      if(prewBet){
+        currMaxBet = maxBet-Number(prewBet.bet)
+        if (Number(prewBet.bet) >= await this.stepService.findBiggestBet(poker.id)||currMaxBet === 0)
+          return;
+      }
+      else
+        currMaxBet = maxBet
+
+      this.server.to(String(roomId)).emit('playerTurn', currMaxBet);
+
+      await new Promise<void>((resolve) => {
+        let resolved = false;
+        const timeout = setTimeout(async () => {
+          if (resolved) return;
+          resolved = true;
+          socket.removeAllListeners('myStep');
+          player.status = false
+          if(!prewBet){
+            lastStep = await this.stepService.create({
+              pockerid: poker.id,
+              playerid: player.id,
+              bet: 0.05,
+              maxbet: maxBet,
+              steptype: StepTypeEnum.Fold,
+            });
+            poker.bank += 0.05;
+          }
+          lastStep = await this.stepService.create({
+            pockerid: poker.id,
+            playerid: player.id,
+            bet: Number(prewBet!.bet),
+            maxbet: maxBet,
+            steptype: StepTypeEnum.Fold,
+          });
+          resolve(); 
+        }, 30000); // 30 sec technical loose 
+        
+        socket.removeAllListeners('myStep');
+        socket.on('myStep', async (currentBet: number) => {
+          let bet: number = currentBet;
+          
+          if (prewBet)
+            bet += Number(prewBet.bet);
+          if (bet > maxBet)
+            bet = maxBet;
+          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep, bet, Number(maxBet));
+
+          if(steptype === StepTypeEnum.Check || 
+             steptype === StepTypeEnum.Call  ||
+             (steptype === StepTypeEnum.Allin&&Number(lastStep!.bet) >= bet)){
+            socket.emit('stepError', 'No Raise')
+            return;
+            }
+
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timeout);
+          socket.removeAllListeners('myStep');
+                    
           lastStep = await this.stepService.create({
             pockerid: poker.id,
             playerid: player.id,
@@ -222,90 +346,41 @@ export class RoomsGateway implements OnGatewayConnection {
         this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep});
       });
     }
-  }
-
-  async balancingCircle(pockerId: number, roomPlayers: number[],lastStep: step | null = null){
-    for (const playerId of roomPlayers) {
-      const player = await this.playersService.findById(playerId);
-      const socket = await this.UseridSocketMap.get(player!.userid)!
-      this.server.to(String(socket.data.roomId)).emit('playerTurn', {player});
-
-      if (socket.data.isActive === false)
-        return;
-
-      await new Promise<void>((resolve) => {
-        let resolved = false;
-        const timeout = setTimeout(() => {
-          if (resolved) return;
-          resolved = true;
-          socket.removeAllListeners('myStep');
-          resolve(); // ЗРОБИТИ ПРОГРАШ
-        }, 30000); // 30 сек
-        
-        socket.removeAllListeners('myStep');
-        socket.on('myStep', async (bet: number) => {
-          const user = await this.usersService.finByPlayer(player!)
-          const maxBet = Number(user!.mybalance)
-
-          if (bet>Number(user!.mybalance))
-            bet = maxBet
-          
-          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep, bet, Number(user!.mybalance))
-
-          if(steptype === StepTypeEnum.Check || 
-             steptype === StepTypeEnum.Call  ||
-             (steptype === StepTypeEnum.Allin&&Number(lastStep!.bet) >= bet)){
-             socket.emit('stepError', 'No Raise')
-             return;
-             }
-          if (resolved) return;
-          resolved = true;
-          clearTimeout(timeout);
-          socket.removeAllListeners('myStep');
-                    
-          lastStep = await this.stepService.create({
-            pockerid: pockerId,
-            playerid: playerId,
-            bet: bet,
-            maxbet: maxBet,
-            steptype: steptype,
-          })
-          resolve()
-        });
-      }).then(()=>{
-        this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep});
-      });
-    }
+    return lastStep
   }
 
   async handlePreflop(roomId: number, poker: poker, roomPlayers: players[]){
     this.server.to(String(roomId)).emit("preFlopStarted", {roomPlayers})
-    this.betCircle(roomId, poker, roomPlayers)
-    // this.balancingCircle( pockerId, roomPlayers)
-    // const cardsToOpen: String[] = (await this.pockerService.findById(pockerId)!).cards.slice(0, 3)
-    // this.server.to(String(roomId)).emit('preFlopEND', {cardsToOpen});
-    // this.handleFlop(roomId, pockerId, roomPlayers)
+    let lastStep = await this.betCircle(roomId, poker, roomPlayers)
+    lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
+    this.server.to(String(roomId)).emit('preFlopEND');
+    this.handleFlop(roomId, poker, roomPlayers, lastStep)
   }
 
-  // async handleFlop(roomId: number, poker: poker, roomPlayers: players[]){
-  //   this.betCircle(roomId, poker, roomPlayers)
-  //   this.balancingCircle( pockerId, roomPlayers)
-  //   const cardsToOpen: String = (await this.pockerService.findById(pockerId)!).cards[3]
-  //   this.server.to(String(roomId)).emit('flopEND', {cardsToOpen});
-  //   this.handleTurn(roomId, pockerId, roomPlayers)
-  // }
+  async handleFlop(roomId: number, poker: poker, roomPlayers: players[], lastStep){
+    this.server.to(String(roomId)).emit("FlopStarted", {cards: [poker.cards[0],poker.cards[1],poker.cards[2]]})
+    lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
+    lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
+    this.server.to(String(roomId)).emit('FlopEND');
+    this.handleTurn(roomId, poker, roomPlayers, lastStep)
+  }
 
-  // async handleTurn(roomId: number, pockerId: number, roomPlayers: number[]){
-  //   this.betCircle(pockerId, roomPlayers)
-  //   this.balancingCircle( pockerId, roomPlayers)
-  //   const cardsToOpen: String = (await this.pockerService.findById(pockerId)!).cards[4]
-  //   this.server.to(String(roomId)).emit('Turn', {cardsToOpen});
-  //   this.handleRiver(roomId, pockerId, roomPlayers)
-  // }  
+  async handleTurn(roomId: number, poker: poker, roomPlayers: players[], lastStep){
+    this.server.to(String(roomId)).emit("TurnStarted", {cards: [poker.cards[3]]})
+    lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
+    lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
+    this.server.to(String(roomId)).emit('TurnEND');
+    this.handleRiver(roomId, poker, roomPlayers, lastStep)
+  }  
 
-  // async handleRiver(roomId: number, pockerId: number, roomPlayers: number[]){
-  //   this.betCircle(pockerId, roomPlayers)
-  //   this.balancingCircle( pockerId, roomPlayers)
-  //   this.server.to(String(roomId)).emit('River');
-  // } 
+  async handleRiver(roomId: number, poker: poker, roomPlayers: players[], lastStep){
+    this.server.to(String(roomId)).emit("RiverStarted", {cards: [poker.cards[4]]})
+    lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
+    lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
+    this.server.to(String(roomId)).emit('RiverEND');
+    this.handleShowdown(roomId, poker, roomPlayers, lastStep)
+  } 
+  async handleShowdown(roomId: number, poker: poker, roomPlayers: players[], lastStep){
+    this.server.to(String(roomId)).emit('Showdown');  
+  }
 }
