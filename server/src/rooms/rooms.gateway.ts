@@ -43,6 +43,9 @@ export class RoomsGateway implements OnGatewayConnection {
     client.data.roomId = roomId;
     client.data.userId = userId;
     this.UseridSocketMap.set(userId, client)
+
+    client.join(wsRoomId)
+    this.server.to(wsRoomId).emit('userJoined', {userId})
   }
 
   async handleTableCreate(roomId: number) {
@@ -197,10 +200,11 @@ export class RoomsGateway implements OnGatewayConnection {
         socket.on('myStep', async (currentBet: number) => {
           let bet: number = currentBet;
           
-          if (prewBet){
-            bet += Number(prewBet.bet)
-          }
-          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep, bet, Number(maxBet))
+          if (prewBet)
+            bet += Number(prewBet.bet);
+          if (bet > maxBet)
+            bet = maxBet;
+          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep, bet, Number(maxBet));
 
           lastStep = await this.stepService.create({
             pockerid: poker.id,
@@ -208,7 +212,10 @@ export class RoomsGateway implements OnGatewayConnection {
             bet: currentBet,
             maxbet: maxBet,
             steptype: steptype,
-          })
+          });
+
+          if (lastStep.steptype === StepTypeEnum.Fold)
+            player.status = false; 
           resolve()
         });
       }).then(()=>{
