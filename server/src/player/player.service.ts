@@ -22,16 +22,14 @@ export class PlayerService {
     });
   }
 
-  
-
   async create(dto: CreatePlayerDto) {
     try {
-      return await this.prisma.players.findUnique({where: {userid: dto.userid}}) || this.prisma.players.create({
+      return await this.prisma.players.create({
         data:{
           userid: dto.userid,
           cards: dto.cards,
           roomid: dto.roomid,
-          status: false
+          status: true,
         }
       });
     } catch (error) {

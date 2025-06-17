@@ -1,14 +1,15 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket, OnGatewayConnection } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
-import { steptype as StepTypeEnum, step} from '@prisma/client';
+import { steptype as StepTypeEnum, step,players,poker} from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { PlayerService } from '../player/player.service';
 import { UserService } from '../User/user.service';
 import { PockerService } from '../pocker/pocker.service';
 import { StepService } from '../step/step.service';
-import { error } from 'console';
+import { error, table } from 'console';
 import { first } from 'rxjs';
+import e from 'express';
 
 @WebSocketGateway({
   cors: { origin: 'http://142.93.175.150', credentials: true }
@@ -29,63 +30,19 @@ export class RoomsGateway implements OnGatewayConnection {
   ) {}
 
   private UseridSocketMap = new Map<number, Socket>();
-  private RoomTableMap = new Map<number, number>();
+  private RoomPlayersMap = new Map<number, players[]>();
 
   async handleConnection(client: Socket) {
     const { wsUserId, wsRoomId } = client.handshake.auth;
     let roomId: number;
     let userId: number;
 
-    try {
-      if (!wsUserId) {
-        client.emit('connection_error', { reason: 'missing userId' });
-        client.disconnect(true);
-        return;
-      }else if(!wsRoomId) {
-        client.emit('connection_error', { reason: 'missing roomId' });
-        client.disconnect(true);
-        return;
-      }
+    roomId = Number(wsRoomId)
+    userId = Number(wsUserId)
 
-      userId = Number(wsUserId);
-      roomId = Number(wsRoomId);
-
-      if (isNaN(userId) || isNaN(roomId)) {
-        throw new Error();
-      }
-    } catch (error) {
-      client.emit('connection_error', { reason: 'wrong data' });
-      client.disconnect(true);
-      return;
-    }
-    
-    client.data.userId = userId;
     client.data.roomId = roomId;
-    client.data.isActive = false;
-
-    if (!this.server.sockets.adapter.rooms) {
-      this.UseridSocketMap.set(userId,client);
-      client.join(wsRoomId);
-      let TableId = await this.handleTableCreate(roomId)
-      this.RoomTableMap.set(roomId, TableId)
-    }else{
-      const roomExists = this.server.sockets.adapter.rooms.has(wsRoomId);
-      if (!roomExists) {
-        this.UseridSocketMap.set(userId,client);
-        client.join(wsRoomId);
-        let TableId = await this.handleTableCreate(roomId)
-        this.RoomTableMap.set(roomId, TableId)
-      }
-    }
-
-    
-    
-
-    this.UseridSocketMap.set(userId,client);
-    client.join(wsRoomId);
-
-    client.emit
-    this.server.to(wsRoomId).emit('userJoined', { userId });
+    client.data.userId = userId;
+    this.UseridSocketMap.set(userId, client)
   }
 
   async handleTableCreate(roomId: number) {
@@ -97,10 +54,6 @@ export class RoomsGateway implements OnGatewayConnection {
     })
     return (await this.pockerService.findByRoomId(roomId)).id
   }
-
-  
-
-
 
   async handleDisconnect(client: Socket) {
     const userId = client.data.userId;
@@ -126,34 +79,33 @@ export class RoomsGateway implements OnGatewayConnection {
     })
     console.log(`Client disconnected: ${client.id}`);
   }
-  
-
-
-
-
 
   @SubscribeMessage('joinTable')
-    async handleJoinTable(client: Socket) {
+    async handleJoinTable(client: Socket, userId: number) {
     const roomId = client.data.roomId
-    const userId = client.data.userId
-    const roomPlayers = (await this.pockerService.findByRoomId(roomId)).playersid
-    const player = await this.playersService.create({
+    let player = await this.playersService.create({
       userid: userId,
-      cards:[],
-      roomid: roomId
+      cards: [],
+      roomid: roomId,
     })
-    roomPlayers.push(player.id)
-    this.pockerService.updatePlayers(roomId, roomPlayers)
-    client.data.isActive = true
+    let roomPlayers = this.RoomPlayersMap.get(roomId)
+    if(roomPlayers)
+      roomPlayers.push(player)
+    else
+      roomPlayers = [player]
 
-    this.server.to(String(roomId)).emit('playerJoined', { roomPlayers });
-
-    if(roomPlayers.length>=2)
-      this.handleGameStart(roomId, roomPlayers)
-
+    this.RoomPlayersMap.set(roomId, [player])
+    
+    if(roomPlayers.length>=2){
+      this.server.to(String(roomId)).emit("prepare")
+      const timeout = setTimeout(() => {
+        this.handleGameStart(roomId, roomPlayers)
+      }, 5000);
+    }
   }
 
-  async handleGameStart(roomId: number, roomPlayers: number[]){
+  async handleGameStart(roomId: number, roomPlayers: players[]){
+    this.server.to(String(roomId)).emit("gameStarted", {roomPlayers})
     // Формуємо колоду карт
     const suits = ['♥', '♦', '♠', '♣'];
     const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '1', 'J', 'Q', 'K', 'A'];
@@ -166,29 +118,24 @@ export class RoomsGateway implements OnGatewayConnection {
       return card;
     };
 
-    const pockerId = await this.RoomTableMap.get(roomId)
+    const poker = await this.pockerService.create({
+      roomid: roomId,
+      playersid: roomPlayers.map(player => player.id),
+      cards: [],
+      bank: 0
+    });
+    poker.cards = [drawCard(),drawCard(),drawCard(),drawCard(),drawCard()]
 
-    await this.pockerService.update(pockerId!, {
-      cards: [drawCard(),drawCard(),drawCard(),drawCard(),drawCard()]
-    })
-
-    await Promise.all(
-      roomPlayers.map(async (playerId) => {
-        const cards = [drawCard(), drawCard()]
-
-        this.playersService.update(playerId, {
-          cards: cards
-        })
-
-        const player = await this.playersService.findById(playerId);
-        const socket = await this.UseridSocketMap.get(player!.userid)
-
-        socket!.emit('yourCards', {cards})
+    for (const player of roomPlayers){
+      const socket = this.UseridSocketMap.get(player.userid)
+      if (socket){
+        const cards = [drawCard(),drawCard()]
+        socket.emit('yourCards', {cards})
+        player.cards = cards
       }
-      )
-    );
+    }
 
-    this.handlePreflop( roomId, pockerId!, roomPlayers)
+    this.handlePreflop( roomId, poker, roomPlayers)
   }
 
 
@@ -196,12 +143,43 @@ export class RoomsGateway implements OnGatewayConnection {
     this.playersService.updateStatus(playerId, false)
   }
 
-  async betCircle(pockerId: number, roomPlayers: number[],lastStep: step | null = null){
-    for (const playerId of roomPlayers) {
-      const player = await this.playersService.findById(playerId);
-      const socket = await this.UseridSocketMap.get(player!.userid)!
-      const user = await this.usersService.finByPlayer(player!)
-      this.server.to(String(socket.data.roomId)).emit('playerTurn', {player});
+  stepTypeDefine(lastStep: step|null, bet: number, balance: number){
+    if (!lastStep)
+      return StepTypeEnum.First;
+    else if (bet === Number(lastStep.bet))
+      return StepTypeEnum.Fold
+    else if (bet === balance)
+      return StepTypeEnum.Allin
+    else if(lastStep.steptype == StepTypeEnum.Check && bet === Number(lastStep!.bet))
+      return StepTypeEnum.Check;
+    else if ((lastStep.steptype === StepTypeEnum.Raise && bet === Number(lastStep!.bet))||
+             (lastStep.steptype === StepTypeEnum.ReRaise&&bet === Number(lastStep!.bet))||
+             (lastStep.steptype === StepTypeEnum.First && bet === Number(lastStep!.bet)))
+      return StepTypeEnum.Call;
+    else if ((lastStep.steptype === StepTypeEnum.Check && bet > Number(lastStep!.bet))||
+             (lastStep.steptype === StepTypeEnum.First && bet > Number(lastStep!.bet)))
+      return StepTypeEnum.Raise;
+    else if ((lastStep.steptype === StepTypeEnum.Raise && bet > Number(lastStep!.bet)))
+      return StepTypeEnum.ReRaise;
+
+    return StepTypeEnum.Fold
+  }
+
+  async betCircle(roomId: number, poker: poker, roomPlayers: players[],lastStep: step | null = null){
+    for (const player of roomPlayers) {
+      if(!player.status) return;// skip if player is loose or fold
+
+      const socket = await this.UseridSocketMap.get(player.userid)!
+      const user = await this.usersService.finByPlayer(player)
+      
+      const maxBet = Number(user!.mybalance)
+      const prewBet = await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id)
+      let currMaxBet: number  
+      if(prewBet)
+        currMaxBet = maxBet-Number(prewBet.bet)
+      else
+        currMaxBet = maxBet
+      this.server.to(String(roomId)).emit('playerTurn', currMaxBet);
 
       await new Promise<void>((resolve) => {
         let resolved = false;
@@ -209,62 +187,28 @@ export class RoomsGateway implements OnGatewayConnection {
           if (resolved) return;
           resolved = true;
           socket.removeAllListeners('myStep');
-          socket.data.isActive = false
+          player.status = false
           if(!lastStep)
             resolve()
-
-          // ЗРОБИТИ ПРОГРАШ
           resolve(); 
         }, 30000); // 30 сек
         
         socket.removeAllListeners('myStep');
-        socket.on('myStep', async (bet: number) => {
+        socket.on('myStep', async (currentBet: number) => {
+          let bet: number = currentBet;
+          
+          if (prewBet){
+            bet += Number(prewBet.bet)
+          }
+          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep, bet, Number(maxBet))
 
-          const lastPlayerStep = await this.stepService.findPlayerLastStepByPockerId(pockerId,playerId)
-          
-          const maxBet = Number(user!.mybalance)
-          if (Number(lastPlayerStep!.maxbet)>Number(user!.mybalance)-Number(lastPlayerStep!.bet))
-            bet = maxBet;
-          
-          let steptype: StepTypeEnum = StepTypeEnum.Fold;
-          if (!lastStep)
-            steptype = StepTypeEnum.First;
-          else if (bet === Number(user!.mybalance))
-            steptype = StepTypeEnum.Allin
-          else if(lastStep.steptype == StepTypeEnum.Check && bet === Number(lastStep!.bet))
-            steptype = StepTypeEnum.Check;
-          else if ((lastStep.steptype === StepTypeEnum.Raise && bet === Number(lastStep!.bet))||
-                   (lastStep.steptype === StepTypeEnum.ReRaise&&bet === Number(lastStep!.bet))||
-                   (lastStep.steptype === StepTypeEnum.First && bet === Number(lastStep!.bet)))
-            steptype = StepTypeEnum.Call;
-          else if ((lastStep.steptype === StepTypeEnum.Check && bet > Number(lastStep!.bet))||
-                   (lastStep.steptype === StepTypeEnum.First && bet > Number(lastStep!.bet)))
-            steptype = StepTypeEnum.Raise;
-          else if ((lastStep.steptype === StepTypeEnum.Raise && bet > Number(lastStep!.bet)))
-            steptype = StepTypeEnum.ReRaise;
-
-          if (resolved) return;
-          resolved = true;
-          clearTimeout(timeout);
-          socket.removeAllListeners('myStep');
-          
-          await this.stepService.create({
-            pockerid: pockerId,
-            playerid: playerId,
-            bet: bet,
+          lastStep = await this.stepService.create({
+            pockerid: poker.id,
+            playerid: player.id,
+            bet: currentBet,
             maxbet: maxBet,
             steptype: steptype,
           })
-          lastStep = (await this.stepService.findLastActiveByPockerId(pockerId))!
-
-          // await this.prisma.balance.create({
-          //   data:{
-          //     stepid:lastStep.id,
-          //     userid:user!.id,
-          //     balancetype: false,
-          //     bet: bet
-          //   }
-          // })
           resolve()
         });
       }).then(()=>{
@@ -299,22 +243,7 @@ export class RoomsGateway implements OnGatewayConnection {
           if (bet>Number(user!.mybalance))
             bet = maxBet
           
-          let steptype: StepTypeEnum = StepTypeEnum.Fold;
-          if (!lastStep)
-            steptype = StepTypeEnum.First
-          else if (bet === Number(user!.mybalance))
-            steptype = StepTypeEnum.Allin
-          else if(lastStep.steptype == StepTypeEnum.Check && bet === Number(lastStep!.bet))
-            steptype = StepTypeEnum.Check;
-          else if ((lastStep.steptype === StepTypeEnum.Raise && bet === Number(lastStep!.bet))||
-                   (lastStep.steptype === StepTypeEnum.ReRaise&&bet === Number(lastStep!.bet))||
-                   (lastStep.steptype === StepTypeEnum.First && bet === Number(lastStep!.bet)))
-            steptype = StepTypeEnum.Call;
-          else if ((lastStep.steptype === StepTypeEnum.Check && bet > Number(lastStep!.bet))||
-                   (lastStep.steptype === StepTypeEnum.First && bet > Number(lastStep!.bet)))
-            steptype = StepTypeEnum.Raise;
-          else if ((lastStep.steptype === StepTypeEnum.Raise && bet > Number(lastStep!.bet)))
-            steptype = StepTypeEnum.ReRaise;
+          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep, bet, Number(user!.mybalance))
 
           if(steptype === StepTypeEnum.Check || 
              steptype === StepTypeEnum.Call  ||
@@ -327,24 +256,13 @@ export class RoomsGateway implements OnGatewayConnection {
           clearTimeout(timeout);
           socket.removeAllListeners('myStep');
                     
-          await this.stepService.create({
+          lastStep = await this.stepService.create({
             pockerid: pockerId,
             playerid: playerId,
             bet: bet,
             maxbet: maxBet,
             steptype: steptype,
           })
-          lastStep = (await this.stepService.findLastActiveByPockerId(pockerId))!
-
-          await this.prisma.balance.create({
-            data:{
-              stepid:lastStep.id,
-              userid:user!.id,
-              balancetype: false,
-              bet: bet
-            }
-          })
-
           resolve()
         });
       }).then(()=>{
@@ -353,33 +271,34 @@ export class RoomsGateway implements OnGatewayConnection {
     }
   }
 
-  async handlePreflop(roomId: number, pockerId: number, roomPlayers: number[]){
-    this.betCircle(pockerId, roomPlayers)
-    this.balancingCircle( pockerId, roomPlayers)
-    const cardsToOpen: String[] = (await this.pockerService.findById(pockerId)!).cards.slice(0, 3)
-    this.server.to(String(roomId)).emit('preFlopEND', {cardsToOpen});
-    this.handleFlop(roomId, pockerId, roomPlayers)
+  async handlePreflop(roomId: number, poker: poker, roomPlayers: players[]){
+    this.server.to(String(roomId)).emit("preFlopStarted", {roomPlayers})
+    this.betCircle(roomId, poker, roomPlayers)
+    // this.balancingCircle( pockerId, roomPlayers)
+    // const cardsToOpen: String[] = (await this.pockerService.findById(pockerId)!).cards.slice(0, 3)
+    // this.server.to(String(roomId)).emit('preFlopEND', {cardsToOpen});
+    // this.handleFlop(roomId, pockerId, roomPlayers)
   }
 
-  async handleFlop(roomId: number, pockerId: number, roomPlayers: number[]){
-    this.betCircle(pockerId, roomPlayers)
-    this.balancingCircle( pockerId, roomPlayers)
-    const cardsToOpen: String = (await this.pockerService.findById(pockerId)!).cards[3]
-    this.server.to(String(roomId)).emit('flopEND', {cardsToOpen});
-    this.handleTurn(roomId, pockerId, roomPlayers)
-  }
+  // async handleFlop(roomId: number, poker: poker, roomPlayers: players[]){
+  //   this.betCircle(roomId, poker, roomPlayers)
+  //   this.balancingCircle( pockerId, roomPlayers)
+  //   const cardsToOpen: String = (await this.pockerService.findById(pockerId)!).cards[3]
+  //   this.server.to(String(roomId)).emit('flopEND', {cardsToOpen});
+  //   this.handleTurn(roomId, pockerId, roomPlayers)
+  // }
 
-  async handleTurn(roomId: number, pockerId: number, roomPlayers: number[]){
-    this.betCircle(pockerId, roomPlayers)
-    this.balancingCircle( pockerId, roomPlayers)
-    const cardsToOpen: String = (await this.pockerService.findById(pockerId)!).cards[4]
-    this.server.to(String(roomId)).emit('Turn', {cardsToOpen});
-    this.handleRiver(roomId, pockerId, roomPlayers)
-  }  
+  // async handleTurn(roomId: number, pockerId: number, roomPlayers: number[]){
+  //   this.betCircle(pockerId, roomPlayers)
+  //   this.balancingCircle( pockerId, roomPlayers)
+  //   const cardsToOpen: String = (await this.pockerService.findById(pockerId)!).cards[4]
+  //   this.server.to(String(roomId)).emit('Turn', {cardsToOpen});
+  //   this.handleRiver(roomId, pockerId, roomPlayers)
+  // }  
 
-  async handleRiver(roomId: number, pockerId: number, roomPlayers: number[]){
-    this.betCircle(pockerId, roomPlayers)
-    this.balancingCircle( pockerId, roomPlayers)
-    this.server.to(String(roomId)).emit('River');
-  } 
+  // async handleRiver(roomId: number, pockerId: number, roomPlayers: number[]){
+  //   this.betCircle(pockerId, roomPlayers)
+  //   this.balancingCircle( pockerId, roomPlayers)
+  //   this.server.to(String(roomId)).emit('River');
+  // } 
 }
