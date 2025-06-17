@@ -41,6 +41,7 @@ export class RoomsService {
         data:{
           usersid: room.usersid
         }})
+        console.log( room.usersid)
     return room.usersid
     }else{
       throw new error('invalid roomId')
