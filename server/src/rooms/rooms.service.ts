@@ -36,6 +36,7 @@ export class RoomsService {
     const room = await this.prisma.room.findUnique({where: {id:roomId}})
     if (room){
       room.usersid.push(userId)
+      room.usersid = Array.from(new Set([...room.usersid, userId]));
       await this.prisma.room.update({
         where:{id:roomId}, 
         data:{
