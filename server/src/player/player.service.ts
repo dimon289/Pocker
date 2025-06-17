@@ -37,7 +37,7 @@ export class PlayerService {
       throw new Error('UnexpectedError');
     } 
   }
-  async update(userid: number, data: Prisma.pokerUpdateInput): Promise<players> {
-      return this.prisma.players.update({ where: { userid }, data });
+  async update(id: number, data: Prisma.pokerUpdateInput): Promise<players> {
+      return this.prisma.players.update({ where: {id}, data});
     }
 }
