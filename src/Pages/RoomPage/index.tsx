@@ -1,21 +1,21 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import {  useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import { RootState } from "../../Store";
 import { io, Socket } from 'socket.io-client';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
-interface Player {
-  id: number;
-  userid: number;
-  cards: string[];
-  roomid: number;
-  status: boolean;
-  name: string;
-  avatar: string;
-  // seat: 'top' | 'left' | 'right' | 'bottom';
-}
+// interface Player {
+//   id: number;
+//   userid: number;
+//   cards: string[];
+//   roomid: number;
+//   status: boolean;
+//   name: string;
+//   avatar: string;
+//   // seat: 'top' | 'left' | 'right' | 'bottom';
+// }
 type ServerToClientEvents = {
   userJoined: (data: { usersId: string[] }) => void;
   Client_disconnected: (data :{userId: string}) => void;
@@ -27,23 +27,25 @@ type ClientToServerEvents = {
 
 const RoomPage: React.FC = () => {
   const { roomId } = useParams();
-  const [users, setUsers] = useState<string[]>([]);
+  // const [users, setUsers] = useState<string[]>([]);
   const [usersId, setUsersId] = useState<string[]>()
   const userId = useSelector((state:RootState) => state.user.userId)
   console.log(userId)
-  const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  // const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   // const [players, setPlayers] = useState<Player[]>([]);
   // const [yourCards, setYourCards] = useState<string[]>([]);
   // const [communityCards, setCommunityCards] = useState<string[]>([]);
   // const [potChips, setPotChips] = useState<number>(0);
-  const [messages, setMessages] = useState<string[]>([]);
+  // const [messages, setMessages] = useState<string[]>([]);
   // const [gameStatus, setGameStatus] = useState<string>('Waiting for players...');
 
   // Чи приєднаний гравець до столу
-  const [hasJoinedTable, setHasJoinedTable] = useState<boolean>(false);
+  const hasJoinedTable = false;
+  // const [hasJoinedTable, setHasJoinedTable] = useState<boolean>(false);
 
   // // Чи зараз ваш хід (можна розширити під логіку з сервера)
-  const [isYourTurn, setIsYourTurn] = useState<boolean>(false);
+  const isYourTurn = false;
+  // const [isYourTurn, setIsYourTurn] = useState<boolean>(false);
 
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   
@@ -71,7 +73,7 @@ const RoomPage: React.FC = () => {
     setUsersId(updated_users)
     console.log(`${userId} left the room`);
   });
-  setSocket(newSocket);
+  // setSocket(newSocket);
   socketRef.current = newSocket;
 
   return () => {
@@ -79,9 +81,9 @@ const RoomPage: React.FC = () => {
     };
   }, [roomId, userId]);
 
-  const handleJoinTable = ()=>{
+  // const handleJoinTable = ()=>{
 
-  }
+  // }
 
   
 
@@ -203,11 +205,11 @@ const RoomPage: React.FC = () => {
       </div>
 
       {/* Messages */}
-      <div className="mt-6 w-[80vw] max-h-40 overflow-y-auto border border-gray-600 rounded p-4 bg-[#1a1a1a] text-sm">
+      {/* <div className="mt-6 w-[80vw] max-h-40 overflow-y-auto border border-gray-600 rounded p-4 bg-[#1a1a1a] text-sm">
         {messages.map((msg, idx) => (
           <div key={idx}>{msg}</div>
         ))}
-      </div>
+      </div> */}
 
       {/* Game status */}
       {/* <div className="mt-4 text-yellow-300 font-semibold text-lg">{gameStatus}</div> */}
