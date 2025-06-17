@@ -30,7 +30,6 @@ const RoomPage: React.FC = () => {
   const userId = useSelector((state:RootState) => state.user.userId)
   console.log(userId)
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
-
   // const [players, setPlayers] = useState<Player[]>([]);
   // const [yourCards, setYourCards] = useState<string[]>([]);
   // const [communityCards, setCommunityCards] = useState<string[]>([]);
@@ -47,27 +46,32 @@ const RoomPage: React.FC = () => {
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   
   useEffect(() => {
-     setSocket(io(`${apiUrl}/rooms`, {
-      withCredentials: true,
-      transports: ['websocket'],
-      auth: {
-        wsUserId: String(userId),
-        wsRoomId: String(roomId),
-      }
-    }))
+  const newSocket: Socket<ServerToClientEvents, ClientToServerEvents> = io(`${apiUrl}/rooms`, {
+    withCredentials: true,
+    transports: ['websocket'],
+    auth: {
+      wsUserId: String(userId),
+      wsRoomId: String(roomId),
+    }
+  });
 
-    socketRef.current = socket;
+  newSocket.on('connect', () => {
+    console.log('WebSocket connected');
+  });
 
-    socket!.on('connect', () => {
-      console.log('WebSocket connected');
-    });
+  newSocket.on('userJoined', ({ userId }) => {
+    console.log(`${userId} joined the room`);
+    setUsers(prev => [...prev, userId]);
+  });
 
-    socket!.on('userJoined', ({ userId }) => {
-      console.log(`${userId} joined the room`);
-      setUsers(prev => [...prev, userId]);
-    });
+  setSocket(newSocket);
+  socketRef.current = newSocket;
 
-  }, [roomId]);
+  return () => {
+    newSocket.disconnect();
+  };
+}, [roomId]);
+
 
   
 
