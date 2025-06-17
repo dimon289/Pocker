@@ -80,7 +80,17 @@ export class RoomsGateway implements OnGatewayConnection {
   }
 
   @SubscribeMessage('joinTable')
-    async handleJoinTable(client: Socket, userId: number) {
+  async handleJoinTable(client: Socket, userId: number) {
+    const allPlayingUsers:number[] = []
+    this.RoomPlayersMap.forEach(room => {
+      room.forEach(player => {
+        allPlayingUsers.push(player.id)
+      })
+    });
+    if(allPlayingUsers.includes(userId)){
+      return client.emit('you already playing')
+    }
+    
     const roomId = client.data.roomId
     let player = await this.playersService.create({
       userid: userId,
