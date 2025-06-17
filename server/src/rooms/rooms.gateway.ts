@@ -37,12 +37,12 @@ export class RoomsGateway implements OnGatewayConnection {
 
     roomId = Number(wsRoomId)
     userId = Number(wsUserId)
-
+    
     client.data.roomId = roomId;
     client.data.userId = userId;
     this.UseridSocketMap.set(userId, client)
-
     const roomUsers:number[] = await this.roomsServie.updateRoomUsersById(userId, roomId) 
+
     client.join(wsRoomId)
     this.server.to(wsRoomId).emit('userJoined', {usersId: roomUsers})
   }
@@ -60,26 +60,19 @@ export class RoomsGateway implements OnGatewayConnection {
   async handleDisconnect(client: Socket) {
     const userId = client.data.userId;
     const roomId = client.data.roomId;
-
-    if (!userId || !roomId) {
-      console.warn('Missing user or room info on disconnect');
-      return;
-    }
-    
     const room = await this.prisma.room.findUnique({
       where: { id: roomId },
       select: { usersid: true },
     });
-
+    
     const updatedUsers = room!.usersid.filter((id) => id !== userId);
-
-    this.prisma.room.update({
-      where: {id: Number(client.rooms)},
+    await this.prisma.room.update({
+      where: {id: roomId},
       data: {
         usersid: updatedUsers
       }
     })
-    console.log(`Client disconnected: ${client.id}`);
+    this.server.to(String(roomId)).emit("Client_disconnected", {userId: userId});
   }
 
   async handleReconnect(client: Socket){

@@ -18,6 +18,7 @@ interface Player {
 }
 type ServerToClientEvents = {
   userJoined: (data: { usersId: string[] }) => void;
+  Client_disconnected: (data :{userId: string}) => void;
 };
 
 type ClientToServerEvents = {
@@ -64,22 +65,30 @@ const RoomPage: React.FC = () => {
     setUsersId(usersId);
     console.log(`${usersId} joined the room`);
   });
-
+  newSocket.on('Client_disconnected', ({ userId }) => {
+    let updated_users = usersId
+    updated_users?.filter((id) => id !== userId)
+    setUsersId(updated_users)
+    console.log(`${userId} left the room`);
+  });
   setSocket(newSocket);
   socketRef.current = newSocket;
 
   return () => {
     newSocket.disconnect();
-  };
-}, [roomId]);
+    };
+  }, [roomId, userId]);
 
+  const handleJoinTable = ()=>{
+
+  }
 
   
 
   return (
     <div className="fixed inset-0 bg-[#242424] text-white pt-[60px] flex flex-col items-center justify-center">
       <ul>
-        {usersId!.map((id, index) => (
+        {(usersId || []).map((id, index) => (
           <li key={index}>{id}</li>
         ))}
       </ul>
@@ -156,7 +165,7 @@ const RoomPage: React.FC = () => {
       <div className="mt-6 flex flex-col items-center">
         {!hasJoinedTable && (
           <button
-            // onClick={handleJoinTable}
+            onClick={handleJoinTable}
             className="mb-4 bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-4 px-12 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105"
           >
             Join Table
