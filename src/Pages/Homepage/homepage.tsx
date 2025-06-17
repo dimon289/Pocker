@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { RootState } from "../../Store";
 import { Link } from "react-router-dom";
-import { changeName, changeAvatar, changeDescription, changeEmail, increaseBalance } from "../../Slices/userSlice";
+import { changeName, changeAvatar, changeDescription, changeEmail, increaseBalance, ChangeUserId } from "../../Slices/userSlice";
 import "./style.css";
 import axios from "axios";
 import { BurgerMenu } from "./burgermenu";
@@ -13,13 +13,13 @@ function Home() {
     const dispatch = useDispatch();
     const name = useSelector((state: RootState) => state.user.userName);
     const balance = useSelector((state: RootState) => state.user.balance);
-    console.log(import.meta.env.VITE_API_URL);
 
     useEffect(() => {
         const token = localStorage.getItem("token")
         let intervalId: any;
 ;
         if (token) {
+            console.log(import.meta.env.VITE_API_URL);
             const fetchUserData = async () => {
                 try {
                     const auth = await axios({
@@ -38,7 +38,7 @@ function Home() {
                         if (user.data.avatar == null) {
                             user.data.avatar = "";
                         }
-
+                        dispatch(ChangeUserId(user.data.id))
                         dispatch(changeName(user.data.nickname));
                         dispatch(changeEmail(user.data.email));
                         dispatch(changeDescription(user.data.description));
@@ -50,16 +50,10 @@ function Home() {
                     console.error("Error fetching user data:", error);
                     localStorage.removeItem("token")
                     clearInterval(intervalId);
-                }
-                    fetchUserData();
-
-                    intervalId = setInterval(fetchUserData, 5 * 100 * 60); // виконуємо кожні 5 хвилин
-
-                    return () => clearInterval(intervalId); 
-                }
+                }}
+                fetchUserData();
             }
-            
-    }, [dispatch]);
+    },[]);
 
     return (
         <>

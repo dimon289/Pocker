@@ -6,4 +6,9 @@ import { CreatePlayerDto, UpdatePlayerDto } from './player.dto';
 export class PlayerController {
   constructor(private readonly playerService: PlayerService) {}
 
+
+  @Get("")
+  async getPlayer(){
+    
+  }
 }

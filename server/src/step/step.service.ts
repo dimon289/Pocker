@@ -44,45 +44,9 @@ export class StepService {
       orderBy:{id: 'desc'}})
   }
 
-  // Оновити крок (наприклад, змінити ставку або тип фази)
-  async update(params: {
-    where: Prisma.stepWhereUniqueInput;
-    data: Prisma.stepUpdateInput;
-  }): Promise<step> {
-    return this.prisma.step.update(params);
-  }
-
-  // Встановити цей крок як поточний у грі
-  async setCurrent(stepId: number): Promise<void> {
-    const st = await this.findById(stepId);
-    await this.prisma.poker.update({
-      where: { id: st.pockerid },
-      data: { step: { connect: { id: stepId } } },
-    });
-  }
-
-  // Обчислити і повернути наступний крок або null, якщо раунд ставок завершено
-  async moveToNext(
-    currentStepId: number,
-    activePlayers: (players & { users: users })[]
-  ): Promise<step | null> {
-    const current = await this.findById(currentStepId);
-    const idx = activePlayers.findIndex(p => p.id === current.playerid);
-    if (idx === -1) return null;
-    const nextIdx = (idx + 1) % activePlayers.length;
-    const next = activePlayers[nextIdx];
-    if (next.id === current.playerid) {
-      // Лише один гравець активний
-      return null;
-    }
-    // Оновити існуючий крок: передати хід наступному гравцю
-    return this.prisma.step.update({
-      where: { id: currentStepId },
-      data: {
-        playerid: next.id,
-        bet: 0,
-        maxbet: Number(next.users.mybalance ?? 0),
-      },
-    });
+  async findBiggestBet(pokerId:number){
+    const pokerSteps = await this.prisma.step.findMany({where:{pockerid: pokerId}})
+    let pokerStepsBets:number[] = pokerSteps.map(step => Number(step.bet))
+    return Math.max(...pokerStepsBets)
   }
 }

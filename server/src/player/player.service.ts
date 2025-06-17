@@ -22,16 +22,14 @@ export class PlayerService {
     });
   }
 
-  
-
   async create(dto: CreatePlayerDto) {
     try {
-      return await this.prisma.players.findUnique({where: {userid: dto.userid}}) || this.prisma.players.create({
+      return await this.prisma.players.create({
         data:{
           userid: dto.userid,
           cards: dto.cards,
           roomid: dto.roomid,
-          status: false
+          status: true,
         }
       });
     } catch (error) {
@@ -39,7 +37,7 @@ export class PlayerService {
       throw new Error('UnexpectedError');
     } 
   }
-  async update(userid: number, data: Prisma.pokerUpdateInput): Promise<players> {
-      return this.prisma.players.update({ where: { userid }, data });
+  async update(id: number, data: Prisma.pokerUpdateInput): Promise<players> {
+      return this.prisma.players.update({ where: {id}, data});
     }
 }

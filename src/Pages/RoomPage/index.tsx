@@ -17,7 +17,8 @@ interface Player {
   // seat: 'top' | 'left' | 'right' | 'bottom';
 }
 type ServerToClientEvents = {
-  userJoined: (data: { userId: string }) => void;
+  userJoined: (data: { usersId: string[] }) => void;
+  Client_disconnected: (data :{userId: string}) => void;
 };
 
 type ClientToServerEvents = {
@@ -27,6 +28,7 @@ type ClientToServerEvents = {
 const RoomPage: React.FC = () => {
   const { roomId } = useParams();
   const [users, setUsers] = useState<string[]>([]);
+  const [usersId, setUsersId] = useState<string[]>()
   const userId = useSelector((state:RootState) => state.user.userId)
   console.log(userId)
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
@@ -59,26 +61,34 @@ const RoomPage: React.FC = () => {
     console.log('WebSocket connected');
   });
 
-  newSocket.on('userJoined', ({ userId }) => {
-    console.log(`${userId} joined the room`);
-    setUsers(prev => [...prev, userId]);
+  newSocket.on('userJoined', ({ usersId }) => {
+    setUsersId(usersId);
+    console.log(`${usersId} joined the room`);
   });
-
+  newSocket.on('Client_disconnected', ({ userId }) => {
+    let updated_users = usersId
+    updated_users?.filter((id) => id !== userId)
+    setUsersId(updated_users)
+    console.log(`${userId} left the room`);
+  });
   setSocket(newSocket);
   socketRef.current = newSocket;
 
   return () => {
     newSocket.disconnect();
-  };
-}, [roomId]);
+    };
+  }, [roomId, userId]);
 
+  const handleJoinTable = ()=>{
+
+  }
 
   
 
   return (
     <div className="fixed inset-0 bg-[#242424] text-white pt-[60px] flex flex-col items-center justify-center">
       <ul>
-        {users.map((id, index) => (
+        {(usersId || []).map((id, index) => (
           <li key={index}>{id}</li>
         ))}
       </ul>
