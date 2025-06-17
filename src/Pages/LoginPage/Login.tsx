@@ -53,7 +53,7 @@ function Login(){
             if(user.data.avatar == null){
                 user.data.avatar =""
             }
-            dispatch(ChangeUserId(user.data.userID))
+            dispatch(ChangeUserId(user.data.id))
             dispatch(changeName(user.data.nickname))   
             dispatch(changeEmail(user.data.email))
             dispatch(changeDescription(user.data.description))
