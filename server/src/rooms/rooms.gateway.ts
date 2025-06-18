@@ -161,7 +161,7 @@ export class RoomsGateway implements OnGatewayConnection {
 
 
   @SubscribeMessage('balanceUp')
-  async handleBalanceUp(client: Socket, userId: number){
+  async handleBalanceUp(client: Socket){
     const user = await this.prisma.users.update({where:{id: client.data.userId}, data:{mybalance: 100}})
   }
 
