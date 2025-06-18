@@ -160,6 +160,10 @@ export class RoomsGateway implements OnGatewayConnection {
   }
 
 
+  @SubscribeMessage('balanceUp')
+  async handleBalanceUp(client: Socket, userId: number){
+    const user = await this.prisma.users.update({where:{id: userId}, data:{mybalance: 100}})
+  }
 
   async handleGameStart(roomId: number, roomPlayers: players[]){
     console.warn("start")
@@ -307,6 +311,7 @@ export class RoomsGateway implements OnGatewayConnection {
           resolve()
         });
       }).then(()=>{
+        poker.stepsid.push(lastStep!.id)
         this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep});
       });
     }
@@ -359,7 +364,8 @@ export class RoomsGateway implements OnGatewayConnection {
           });
           resolve(); 
         }, 30000); // 30 sec technical loose 
-        
+
+        socket.emit('makeYourStep', {currMaxBet: currMaxBet})
         socket.removeAllListeners('myStep');
         socket.on('myStep', async (currentBet: number) => {
           let bet: number = currentBet;
@@ -395,6 +401,7 @@ export class RoomsGateway implements OnGatewayConnection {
           resolve()
         });
       }).then(()=>{
+        poker.stepsid.push(lastStep!.id)
         this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep});
       });
     }

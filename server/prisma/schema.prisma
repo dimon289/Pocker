@@ -30,17 +30,17 @@ model players {
   roomid                           Int      
   status                           Boolean  @default(false)
   room                             room     @relation(fields: [roomid], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  step_step_playeridToplayers      step?    @relation("step_playeridToplayers")
+
 }
 
 model poker {
   id        Int      @id @default(autoincrement())
   roomid    Int
   playersid Int[]
+  stepsid   Int[]
   cards     String[] @db.Char(2)
   bank      Int      @default(0)
   room      room     @relation(fields: [roomid], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  step      step?
 	@@map("pocker")
 }
 
@@ -56,14 +56,12 @@ model room {
 
 model step {
   id                                  Int      @id @default(autoincrement())
-  pockerid                            Int      @unique
-  playerid                            Int      @unique
+  pockerid                            Int      
+  playerid                            Int      
   bet                                 Decimal      @default(0)
   maxbet                              Decimal  @default(0) @db.Decimal(12, 2)
   steptype                            steptype
   balance                             balance?
-  players_step_playeridToplayers      players  @relation("step_playeridToplayers", fields: [playerid], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  pocker                              poker   @relation(fields: [pockerid], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model users {
