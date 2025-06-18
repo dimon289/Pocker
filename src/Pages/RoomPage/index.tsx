@@ -31,6 +31,7 @@ type ServerToClientEvents = {
   FlopStarted: (data: {cards:string[]})=>void;
   TurnStarted: (data: {cards:string[]})=>void;
   RiverStarted:(data: {cards:string[]})=>void;
+
 };
 
 type ClientToServerEvents = {
@@ -113,6 +114,7 @@ const RoomPage: React.FC = () => {
     );
   })
   newSocket.on('makeYourStep',({currMaxBet, currMinBet})=>{
+    setPotChips(0)
     setIsYourTurn(true)
     setMaxbet(currMaxBet)
     setMinbet(currMinBet)
@@ -175,26 +177,28 @@ const RoomPage: React.FC = () => {
 
           const seat = seatPositions[index];
           let positionClasses = '';
-          switch (seat) {
-            case 'top':
-              positionClasses = 'top-4 left-1/2 -translate-x-1/2';
-              break;
-            case 'top-left':
-              positionClasses = 'top-10 left-24';
-              break;
-            case 'top-right':
-              positionClasses = 'top-10 right-24';
-              break;
-            case 'bottom-left':
-              positionClasses = 'bottom-16 left-24';
-              break;
-            case 'bottom-right':
-              positionClasses = 'bottom-16 right-24';
-              break;
-            case 'bottom':
-              positionClasses = 'bottom-16 left-1/2 -translate-x-1/2';
-              break;
-          }
+            switch (seat) {
+              case 'top':
+                positionClasses = 'top-6 left-1/2 -translate-x-1/2';
+                break;
+              case 'top-left':
+                positionClasses = 'top-12 left-[10%]';
+                break;
+              case 'top-right':
+                positionClasses = 'top-12 right-[10%]';
+                break;
+              case 'bottom-left':
+                positionClasses = 'bottom-12 left-[10%]';
+                break;
+              case 'bottom-right':
+                positionClasses = 'bottom-12 right-[10%]';
+                break;
+              case 'bottom':
+                positionClasses = 'bottom-6 left-1/2 -translate-x-1/2';
+                break;
+            }
+
+
 
           const updatedPlayer = {
             player: player,
@@ -269,11 +273,6 @@ const RoomPage: React.FC = () => {
 
   return (
     <div className="fixed inset-0 bg-[#242424] text-white pt-[60px] flex flex-col items-center justify-center">
-      <ul>
-        {(usersId || []).map((id, index) => (
-          <li key={index}>{id}</li>
-        ))}
-      </ul>
       {/* Poker Table */}
       <div className="relative w-[80vw] h-[80vh] bg-green-900 border-[10px] border-yellow-400 rounded-full flex items-center justify-center shadow-2xl">
 
@@ -292,39 +291,48 @@ const RoomPage: React.FC = () => {
 
         {/* Players */}
         {playersInGame && playersInGame.map(player => {
-          const isCurrent = player.player.id === currentPlayerId;
+        const isCurrent = player.player.id === currentPlayerId;
+        const isInactive = player.player.status === false;
 
-          return (
-            <div
-              key={player.player.id}
-              className={`absolute flex flex-col items-center transition-all duration-300 ${player.positionClasses} ${
-                isCurrent ? 'scale-110 z-10' : ''
-              }`}
-            >
-              <img
-                className={`w-16 h-16 rounded-full border-2 ${
-                  isCurrent ? 'border-green-400 ring-4 ring-green-300 animate-pulse' : 'border-white'
-                }`}
-                src={player.useravatar}
-                alt={`Player ${player.usernickname}`}
-              />
-              <div
-                className={`mt-1 px-2 py-1 rounded-md ${
-                  isCurrent
-                    ? 'text-yellow-400 font-extrabold text-lg animate-pulse'
-                    : 'text-white text-sm'
-                }`}
-              >
-                {player.usernickname}
-              </div>
-              <div className={'flex gap-2 text-5xl mt-2'}>
-                {player.player.cards.map((card, idx) => (
-                  <span key={idx}>{getCardUnicode(card)}</span>
-                ))}
-              </div>
+        return (
+          <div
+            key={player.player.id}
+            className={`absolute flex flex-col items-center transition-all duration-300 
+              ${player.positionClasses} 
+              ${isCurrent ? 'scale-110 z-10' : ''} 
+              ${isInactive ? 'opacity-40 grayscale' : ''}`}
+          >
+            <img
+            className={`w-12 h-12 rounded-full border-2 
+              ${isCurrent ? 'border-green-400 ring-4 ring-green-300 animate-pulse' : 'border-white'} 
+              ${isInactive ? 'grayscale opacity-60' : ''}`}
+          />
+
+          <div
+            className={`mt-1 px-2 py-1 rounded-md ${
+              isCurrent
+                ? 'text-yellow-400 font-extrabold text-base animate-pulse'
+                : 'text-white text-xs'
+            } ${isInactive ? 'line-through text-red-300' : ''}`}
+          >
+            {player.usernickname}
+          </div>
+
+          <div className={'flex gap-1 text-3xl mt-1'}>
+              {player.player.cards.map((card, idx) => (
+                <span key={idx} className={`${isInactive ? 'opacity-30' : ''}`}>
+                  {getCardUnicode(card)}
+                </span>
+              ))}
             </div>
-          );
-        })}
+
+            {isInactive && (
+              <div className="text-red-400 text-xs mt-1 italic">Вийшов</div>
+            )}
+          </div>
+        );
+          })}
+
         {/* Your Cards */}
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2">
           <div className="flex gap-4 text-6xl">
