@@ -44,11 +44,16 @@ export class RoomsGateway implements OnGatewayConnection {
     const roomUsers:number[] = await this.roomsService.updateRoomUsersById(userId, roomId)
     
     let roomPlayers = this.RoomPlayersMap.get(roomId)
-    let playersUsersId: number[]
+    let playersUsersId
     if(!roomPlayers)
       playersUsersId = []
     else
-      playersUsersId = roomPlayers.map((player) => player.userid) 
+      playersUsersId = roomPlayers.map((player) => {
+        id: player.id
+        userId: player.userid
+        status: player.status
+        roomId: player.roomid
+      }) 
 
     client.join(wsRoomId)
     this.server.to(wsRoomId).emit('userJoined', {usersId: roomUsers, roomPlayers: playersUsersId})
