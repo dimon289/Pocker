@@ -10,12 +10,15 @@ const apiUrl = import.meta.env.VITE_API_URL;
 interface Player {
   id: number;
   userid: number;
+  useravatar:string;
+  usernickname:string;
   cards: string[];
   roomid: number;
   status:Boolean;
 }
+
 type ServerToClientEvents = {
-  userJoined: (data: { usersId: string[], roomUsers:Number[]   }) => void;
+  userJoined: (data: { usersId: string[], roomPlayers:Player[]   }) => void;
   Client_disconnected: (data :{userId: string}) => void;
   TableJoined:(data: {player:Player, roomPlayers:Player[]})=>void;
 };
@@ -61,9 +64,8 @@ const RoomPage: React.FC = () => {
     setMessages(prevMessages => [...prevMessages, 'WebSocket connected']);
   });
 
-  newSocket.on('userJoined', ({ usersId, roomUsers }) => {
-    console.warn(usersId, roomUsers)
-    
+  newSocket.on('userJoined', ({ usersId, roomPlayers}) => {
+    setPlayers(roomPlayers)
     setUsersId(usersId);
     setMessages(prevMessages => [...prevMessages,`${usersId} joined the room`]);
   });
@@ -76,7 +78,6 @@ const RoomPage: React.FC = () => {
   
   newSocket.on('TableJoined', ({ player , roomPlayers }) => {
     setPlayers(roomPlayers)
-    console.log(roomPlayers)
     console.log(`${player.userid} joined the table`);
     setHasJoinedTable(true)
   });
@@ -131,25 +132,19 @@ const RoomPage: React.FC = () => {
 
         {/* Players */}
         {players && players
-          .filter(p => p.userid !== Number(userId)) // прибираємо поточного гравця з відображення
           .map((player, index) => {
             
             const baseClasses = 'absolute flex flex-col items-center';
             const cardClasses = 'flex gap-2 text-5xl mt-2';
-                        let avatar 
-            let username
-            getUser(player.userid).then((user) => {
-              console.log(user)
-              avatar = user.data.avatar
-              username = user.data.nickname
-            })
-           
+            let avatar = player.useravatar;
+            let username = player.usernickname;
+            
 
             const currentPlayerIndex = players.findIndex(p => p.userid === Number(userId));
             const rotatedIndex = (index - currentPlayerIndex + players.length - 1) % (players.length - 1);
 
             // 5 позицій (без 'bottom')
-            const seatPositions = ['bottom-left', 'top-left', 'top', 'top-right', 'bottom-right'];
+            const seatPositions = ['bottom-left', 'top-left', 'top', 'top-right', 'bottom-right', 'bottom'];
             const seat = seatPositions[rotatedIndex % seatPositions.length];
 
             let positionClasses = '';
@@ -169,6 +164,8 @@ const RoomPage: React.FC = () => {
               case 'bottom-right':
                 positionClasses = 'bottom-16 right-24';
                 break;
+              case 'bottom':
+                positionClasses = 'bottom-16 left-1/2 -translate-x-1/2'
             }
 
             return (

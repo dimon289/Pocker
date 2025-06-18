@@ -48,13 +48,16 @@ export class RoomsGateway implements OnGatewayConnection {
     if(!roomPlayers)
       playersUsersId = []
     else
-      playersUsersId = roomPlayers.map((player) => {
-        id: player.id
-        userId: player.userid
-        status: player.status
-        roomId: player.roomid
-      }) 
-
+      playersUsersId = await Promise.all(roomPlayers.map(async(player) => {
+            const user = await this.usersService.findId(String(player.userid))
+            return {
+              id: player.id,
+              userid: player.userid,
+              cards:[],
+              status: player.status,
+              roomId: player.roomid
+            };
+      }))
     client.join(wsRoomId)
     this.server.to(wsRoomId).emit('userJoined', {usersId: roomUsers, roomPlayers: playersUsersId})
   }
@@ -125,7 +128,7 @@ export class RoomsGateway implements OnGatewayConnection {
         roomPlayers.push(player)
         this.RoomPlayersMap.set(roomId, roomPlayers)
         this.server.to(String(client.data.roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
-        console.warn(roomPlayers)
+        
     }
     else{
       roomPlayers = [player]

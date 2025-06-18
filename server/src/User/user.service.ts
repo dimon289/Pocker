@@ -21,7 +21,7 @@ export class UserService {
     async findId(id:string) {
         try {
             const user = await this.prisma.users.findFirst({where: { id:Number(id) }});
-            return user || false;
+            return user;
         } catch (error) {
             console.error("Помилка при пошуку name:", error);
             throw new Error("Не вдалося отримати користувача");
