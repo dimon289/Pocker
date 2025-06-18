@@ -24,7 +24,7 @@ export class RoomsGateway implements OnGatewayConnection {
     private readonly usersService: UserService,
     private readonly pockerService: PockerService,
     private readonly stepService: StepService,
-    private readonly roomsServie: RoomsService,
+    private readonly roomsService: RoomsService,
   ) {}
 
   private UseridSocketMap = new Map<number, Socket>();
@@ -41,7 +41,7 @@ export class RoomsGateway implements OnGatewayConnection {
     client.data.roomId = roomId;
     client.data.userId = userId;
     this.UseridSocketMap.set(userId, client)
-    const roomUsers:number[] = await this.roomsServie.updateRoomUsersById(userId, roomId) 
+    const roomUsers:number[] = await this.roomsService.updateRoomUsersById(userId, roomId) 
 
     client.join(wsRoomId)
     this.server.to(wsRoomId).emit('userJoined', {usersId: roomUsers})
@@ -88,15 +88,19 @@ export class RoomsGateway implements OnGatewayConnection {
       roomid: roomId,
     })
     let roomPlayers = this.RoomPlayersMap.get(roomId)
+    
     if(roomPlayers){
       if (roomPlayers.length >= 6)
         client.emit("TableFull")
       else
         roomPlayers.push(player)
+        client.emit("TableJoined", {userId})
+        console.warn(roomPlayers)
     }
-    else
+    else{
       roomPlayers = [player]
-
+      client.emit("TableJoined", {userId})
+    }
     this.RoomPlayersMap.set(roomId, [player])
     
     if(roomPlayers.length>=2){

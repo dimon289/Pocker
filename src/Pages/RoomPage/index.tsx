@@ -6,23 +6,25 @@ import { io, Socket } from 'socket.io-client';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
-// interface Player {
-//   id: number;
-//   userid: number;
-//   cards: string[];
-//   roomid: number;
-//   status: boolean;
-//   name: string;
-//   avatar: string;
-//   // seat: 'top' | 'left' | 'right' | 'bottom';
-// }
+interface Player {
+  id: number;
+  userid: number;
+  cards: string[];
+  roomid: number;
+  status: boolean;
+  name: string;
+  avatar: string;
+  // seat: 'top' | 'left' | 'right' | 'bottom';
+}
 type ServerToClientEvents = {
   userJoined: (data: { usersId: string[] }) => void;
   Client_disconnected: (data :{userId: string}) => void;
+  TableJoined:(data: {userId:string})=>void;
 };
 
 type ClientToServerEvents = {
   joinRoom: (data: { roomId: string; userId: string }) => void;
+  joinTable: ( userId:number)=>void;
 };
 
 const RoomPage: React.FC = () => {
@@ -30,9 +32,8 @@ const RoomPage: React.FC = () => {
   // const [users, setUsers] = useState<string[]>([]);
   const [usersId, setUsersId] = useState<string[]>()
   const userId = useSelector((state:RootState) => state.user.userId)
-  console.log(userId)
-  // const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
-  // const [players, setPlayers] = useState<Player[]>([]);
+  const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
   // const [yourCards, setYourCards] = useState<string[]>([]);
   // const [communityCards, setCommunityCards] = useState<string[]>([]);
   // const [potChips, setPotChips] = useState<number>(0);
@@ -68,12 +69,17 @@ const RoomPage: React.FC = () => {
     console.log(`${usersId} joined the room`);
   });
   newSocket.on('Client_disconnected', ({ userId }) => {
-    let updated_users = usersId
-    updated_users?.filter((id) => id !== userId)
-    setUsersId(updated_users)
+    let updated_users = usersId?.filter((id) => id !== userId);
+    setUsersId(updated_users);
+
     console.log(`${userId} left the room`);
   });
-  // setSocket(newSocket);
+  
+  newSocket.on('TableJoined', ({ userId }) => {
+    console.log(`${userId} joined the table`);
+  });
+
+  setSocket(newSocket);
   socketRef.current = newSocket;
 
   return () => {
@@ -81,9 +87,13 @@ const RoomPage: React.FC = () => {
     };
   }, [roomId, userId]);
 
-  // const handleJoinTable = ()=>{
+  const handleJoinTable = () => {
+    if (socket) {
+      socket.emit('joinTable', Number(userId) );
+      console.log('Запит на приєднання до столу надіслано');
+    }
+  };
 
-  // }
 
   
 
@@ -111,11 +121,11 @@ const RoomPage: React.FC = () => {
         </div>
 
         {/* Players */}
-        {/* {players.map((player, index) => {
+        {players.map((player, index) => {
           const baseClasses = 'absolute flex flex-col items-center';
           const cardClasses = 'flex gap-2 text-5xl mt-2';
 
-          const currentPlayerIndex = players.findIndex(p => p.userid === userId);
+          const currentPlayerIndex = players.findIndex(p => p.userid === Number(userId));
           const rotatedIndex = (index - currentPlayerIndex + players.length) % players.length;
 
           const seatPositions = ['bottom', 'left', 'top', 'right'];
@@ -135,9 +145,9 @@ const RoomPage: React.FC = () => {
             case 'bottom':
               positionClasses = 'bottom-20 left-1/2 -translate-x-1/2';
               break;
-          } */}
+          }
 
-          {/* return (
+           return (
             <div key={player.id} className={`${baseClasses} ${positionClasses}`}>
               <img
                 src={player.avatar}
@@ -152,7 +162,7 @@ const RoomPage: React.FC = () => {
               </div>
             </div>
           );
-        })} */}
+        })}
         {/* Your Cards */}
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2">
           <div className="flex gap-4 text-6xl">
@@ -167,7 +177,7 @@ const RoomPage: React.FC = () => {
       <div className="mt-6 flex flex-col items-center">
         {!hasJoinedTable && (
           <button
-            // onClick={handleJoinTable}
+            onClick={handleJoinTable}
             className="mb-4 bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-4 px-12 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105"
           >
             Join Table
