@@ -44,7 +44,7 @@ export class RoomsGateway implements OnGatewayConnection {
     const roomUsers:number[] = await this.roomsService.updateRoomUsersById(userId, roomId) 
 
     client.join(wsRoomId)
-    this.server.to(wsRoomId).emit('userJoined', {usersId: roomUsers})
+    this.server.to(wsRoomId).emit('userJoined', {usersId: userId, roomUsers:roomUsers})
   }
 
   async handleTableCreate(roomId: number) {
@@ -111,12 +111,14 @@ export class RoomsGateway implements OnGatewayConnection {
         client.emit("TableFull")
       else
         roomPlayers.push(player)
-        this.server.to(String(roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
+        this.RoomPlayersMap.set(roomId, roomPlayers)
+        this.server.to(String(client.data.roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
         console.warn(roomPlayers)
     }
     else{
       roomPlayers = [player]
-      this.server.to(String(roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
+      this.RoomPlayersMap.set(roomId, roomPlayers)
+      this.server.to(String(client.data.roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
     }
     this.RoomPlayersMap.set(roomId, [player])
     
@@ -131,7 +133,12 @@ export class RoomsGateway implements OnGatewayConnection {
           this.server.to(String(client.data.roomId)).emit('userLeavedTable', {roomPlayers:roomPlayers})
           clearTimeout(timeout);
         })
-        this.handleGameStart(roomId, roomPlayers)
+        if(this.RoomPlayersMap.get(roomId)!.length>=2)
+          this.handleGameStart(roomId, roomPlayers)
+        else{
+          clearTimeout(timeout)
+          this.server.to(String(client.data.roomId)).emit("notEnoughtPlayers")
+        }
       }, 5000);
     }
 

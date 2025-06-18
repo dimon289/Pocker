@@ -12,6 +12,7 @@ interface Player {
   userid: number;
   cards: string[];
   roomid: number;
+  status:Boolean;
 }
 type ServerToClientEvents = {
   userJoined: (data: { usersId: string[], roomUsers:Player[]   }) => void;
@@ -34,8 +35,8 @@ const RoomPage: React.FC = () => {
   // const [yourCards, setYourCards] = useState<string[]>([]);
   // const [communityCards, setCommunityCards] = useState<string[]>([]);
   // const [potChips, setPotChips] = useState<number>(0);
-  // const [messages, setMessages] = useState<string[]>([]);
-  // const [gameStatus, setGameStatus] = useState<string>('Waiting for players...');
+  const [messages, setMessages] = useState<string[]>([]);
+  const [gameStatus, setGameStatus] = useState<string>('Waiting for players...');
 
   // Чи приєднаний гравець до столу
   const [hasJoinedTable, setHasJoinedTable] = useState<boolean>(false);
@@ -57,13 +58,14 @@ const RoomPage: React.FC = () => {
   });
 
   newSocket.on('connect', () => {
-    console.log('WebSocket connected');
+    setMessages(prevMessages => [...prevMessages, 'WebSocket connected']);
   });
 
   newSocket.on('userJoined', ({ usersId, roomUsers }) => {
+    console.warn(usersId, roomUsers)
     setPlayers(roomUsers)
     setUsersId(usersId);
-    console.log(`${usersId} joined the room`);
+    setMessages(prevMessages => [...prevMessages,`${usersId} joined the room`]);
   });
   newSocket.on('Client_disconnected', ({ userId }) => {
     let updated_users = usersId?.filter((id) => id !== userId);
@@ -134,11 +136,15 @@ const RoomPage: React.FC = () => {
             
             const baseClasses = 'absolute flex flex-col items-center';
             const cardClasses = 'flex gap-2 text-5xl mt-2';
-            
-            let user = getUser(player.userid)
-            console.log(user)
-            let avatar
+                        let avatar 
             let username
+            getUser(player.userid).then((user) => {
+              console.log(user)
+              avatar = user.data.avatar
+              username = user.data.nickname
+            })
+           
+
             const currentPlayerIndex = players.findIndex(p => p.userid === Number(userId));
             const rotatedIndex = (index - currentPlayerIndex + players.length - 1) % (players.length - 1);
 
@@ -234,14 +240,14 @@ const RoomPage: React.FC = () => {
       </div>
 
       {/* Messages */}
-      {/* <div className="mt-6 w-[80vw] max-h-40 overflow-y-auto border border-gray-600 rounded p-4 bg-[#1a1a1a] text-sm">
+      <div className="mt-6 w-[80vw] max-h-40 overflow-y-auto border border-gray-600 rounded p-4 bg-[#1a1a1a] text-sm">
         {messages.map((msg, idx) => (
           <div key={idx}>{msg}</div>
         ))}
-      </div> */}
+      </div>
 
       {/* Game status */}
-      {/* <div className="mt-4 text-yellow-300 font-semibold text-lg">{gameStatus}</div> */}
+       <div className="mt-4 text-yellow-300 font-semibold text-lg">{gameStatus}</div> 
     </div>
   );
 };
