@@ -162,6 +162,7 @@ export class RoomsGateway implements OnGatewayConnection {
 
 
   async handleGameStart(roomId: number, roomPlayers: players[]){
+    console.warn("start")
     this.server.to(String(roomId)).emit("gameStarted", {roomPlayers})
     roomPlayers.forEach(player => {
       this.UseridSocketMap.get(player.userid)?.removeAllListeners('leaveTable')

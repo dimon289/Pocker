@@ -24,6 +24,8 @@ type ServerToClientEvents = {
   userJoined: (data: { usersId: string[], roomPlayers:Player[]   }) => void;
   Client_disconnected: (data :{userId: string}) => void;
   TableJoined:(data: {player:Player, roomPlayers:Player[]})=>void;
+  gameStarted:(data: {roomPlayers:Player[]})=>void;
+  yourCards: (data: {cards:string[]})=>void;
 };
 
 type ClientToServerEvents = {
@@ -39,7 +41,7 @@ const RoomPage: React.FC = () => {
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [playersInGame, setPlayersInGame] = useState<PlayerinGame[]>([])
-  // const [yourCards, setYourCards] = useState<string[]>([]);
+  const [yourCards, setYourCards] = useState<string[]>([]);
   // const [communityCards, setCommunityCards] = useState<string[]>([]);
   // const [potChips, setPotChips] = useState<number>(0);
   const [messages, setMessages] = useState<string[]>([]);
@@ -63,11 +65,6 @@ const RoomPage: React.FC = () => {
       wsRoomId: String(roomId),
     }
   });
-
-  newSocket.on('connect', () => {
-    setMessages(prevMessages => [...prevMessages, 'WebSocket connected']);
-  });
-
   newSocket.on('userJoined', ({ usersId, roomPlayers}) => {
     setPlayers(roomPlayers)
     setUsersId(usersId);
@@ -77,15 +74,31 @@ const RoomPage: React.FC = () => {
     let updated_users = usersId?.filter((id) => id !== userId);
     setUsersId(updated_users);
 
-    console.log(`${userId} left the room`);
+    setMessages(prevMessages => [...prevMessages,`${userId} left the room`]);
   });
   
   newSocket.on('TableJoined', ({ player , roomPlayers }) => {
     setPlayers(roomPlayers)
-    console.log(`${player.userid} joined the table`);
+    setMessages(prevMessages => [...prevMessages,`${player.userid} joined the table`]);
     setHasJoinedTable(true)
   });
-
+  newSocket.on('gameStarted', ({roomPlayers})=>{
+      setPlayers(roomPlayers)
+      setMessages(prevMessages => [...prevMessages,'Game Started'])
+      setGameStatus('Game Started');
+  })
+  newSocket.on('yourCards', ({cards})=>{
+    setYourCards(cards)
+    setPlayersInGame(prevPlayers =>
+      prevPlayers.map(p => ({
+        ...p,
+        player: {
+          ...p.player,
+          cards: ["🂠", "🂠"]  // 2 закриті карти для всіх
+        }
+      }))
+    );
+  })
   setSocket(newSocket);
   socketRef.current = newSocket;
 
@@ -97,7 +110,7 @@ const RoomPage: React.FC = () => {
   const handleJoinTable = () => {
     if (socket) {
       socket.emit('joinTable', Number(userId) );
-      console.log('Запит на приєднання до столу надіслано');
+      setMessages(prevMessages => [...prevMessages,'Запит на приєднання до столу надіслано']);
     }
   };
   const getUser = async(userId:number) => {
@@ -171,7 +184,43 @@ const RoomPage: React.FC = () => {
     }
   }, [players, userId]);
 
+      function getCardUnicode(card: string): string {
+      const suit = card[0]; // '♦'
+      const value = card.slice(1); // '1'
 
+      // Мапа мастей до base Unicode значень
+      const suitBase: { [key: string]: number } = {
+        '♠': 0x1F0A0, // Spades
+        '♥': 0x1F0B0, // Hearts
+        '♦': 0x1F0C0, // Diamonds
+        '♣': 0x1F0D0, // Clubs
+      };
+
+      // Мапа значень (у Unicode деякі значення пропущені)
+      const valueMap: { [key: string]: number } = {
+        'A': 0x1,   // Туз
+        '2': 0x2,
+        '3': 0x3,
+        '4': 0x4,
+        '5': 0x5,
+        '6': 0x6,
+        '7': 0x7,
+        '8': 0x8,
+        '9': 0x9,
+        '1': 0xA,
+        'J': 0xB,  // Валет
+        'Q': 0xD,  // Дама (C пропущено)
+        'K': 0xE,  // Король
+      };
+
+      const base = suitBase[suit];
+      const code = valueMap[value];
+
+      if (!base || !code) return '🂠'; // невідома карта
+
+      // Отримаємо символ карти
+      return String.fromCodePoint(base + code);
+    }
 
 
   
@@ -211,11 +260,11 @@ const RoomPage: React.FC = () => {
                   alt={`Player ${player.usernickname}`}
                 />
                 <div className="text-sm mt-1">{player.usernickname}</div>
-                <div className={'flex gap-2 text-5xl mt-2'}>
-                  {player.player.cards.map((card, idx) => (
-                    <span key={idx}>{card}</span>
-                  ))}
-                </div>
+                  <div className={'flex gap-2 text-5xl mt-2'}>
+                      {player.player.cards.map((card, idx) => (
+                        <span key={idx}>{card}</span>
+                      ))}
+                  </div>
               </div>
             );
     
@@ -223,16 +272,16 @@ const RoomPage: React.FC = () => {
         {/* Your Cards */}
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2">
           <div className="flex gap-4 text-6xl">
-            {/* {yourCards.map((card, idx) => (
-              <span key={idx}>{card}</span>
-            ))} */}
+              {yourCards.map((card, idx) => (
+                <span key={idx}>{getCardUnicode(card)}</span>
+              ))}
           </div>
         </div>
       </div>
 
       {/* Controls */}
       <div className="mt-6 flex flex-col items-center">
-        {!hasJoinedTable && (
+        {(!hasJoinedTable && gameStatus =='Waiting for players...') && (
           <button
             onClick={handleJoinTable}
             className="mb-4 bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-4 px-12 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105"
