@@ -447,7 +447,7 @@ const RoomPage: React.FC = () => {
 
                 {/* Fold */}
                 <button
-                  onClick={() => setmyBet(0)}
+                  onClick={() => setmyBet(-1)}
                   disabled={!isYourTurn}
                   className={`bg-gradient-to-br from-red-500 to-red-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
                     ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-red-600 hover:to-red-800'}`}
@@ -459,11 +459,13 @@ const RoomPage: React.FC = () => {
                 <button
                   onClick={Bet}
                   disabled={!isYourTurn}
-                  className={`bg-gradient-to-br from-green-500 to-green-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
-                    ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-green-600 hover:to-green-800'}`}
+                  className={`bg-gradient-to-br from-green-500 to-green-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform flex items-center justify-center gap-2
+                    ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:scale-105 hover:from-green-600 hover:to-green-800'}`}
                 >
-                  🪙 <span>{`Bet ${myBet}`}</span>
+                  🪙
+                  {Number(myBet) >= 0 ? `Bet ${myBet}` : `Fold`}
                 </button>
+
               </>
             )}
           </div>

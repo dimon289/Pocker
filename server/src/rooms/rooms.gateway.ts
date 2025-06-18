@@ -202,7 +202,7 @@ export class RoomsGateway implements OnGatewayConnection {
 
   stepTypeDefine(lastStep: step|undefined, currBet:number, Bet: number, balance: number){
     // console.warn('lastStep.steptype: '+lastStep?.steptype + ' lastStep.bet: ' + lastStep?.bet + ' currBet: '+currBet+' Bet:'+Bet+' balance: '+balance)
-    console.warn(lastStep)
+    console.warn("ABOBA "+lastStep)
     if (!lastStep)
       return StepTypeEnum.First;
 
