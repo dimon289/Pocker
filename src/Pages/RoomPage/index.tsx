@@ -27,7 +27,7 @@ type ServerToClientEvents = {
   gameStarted:(data: {roomPlayers:Player[]})=>void;
   yourCards: (data: {cards:string[]})=>void;
   playerTurn: (data: {playerId:number}) =>void;
-  makeYourStep: (data: {currMaxBet:number}) => void;
+  makeYourStep: (data: {currMaxBet:number, currMinBet:number}) => void;
 };
 
 type ClientToServerEvents = {
@@ -111,9 +111,10 @@ const RoomPage: React.FC = () => {
       setIsYourTurn(false)
 
   })
-  newSocket.on('makeYourStep',({currMaxBet})=>{
+  newSocket.on('makeYourStep',({currMaxBet, currMinBet})=>{
     setIsYourTurn(true)
     setMinbet(currMaxBet)
+    setMinbet(currMinBet)
   })  
   setSocket(newSocket);
   socketRef.current = newSocket;
@@ -335,7 +336,7 @@ const RoomPage: React.FC = () => {
                   <input
                     type="range"
                     min={Number(minBet)}
-                    max={}
+                    max={Number(maxBet)}
                     value={Number(myBet)}
                     onChange={(e) => setmyBet(Number(e.target.value))}
                     className="w-64"
