@@ -116,13 +116,13 @@ export class RoomsGateway implements OnGatewayConnection {
       else
         roomPlayers.push(player)
         this.RoomPlayersMap.set(roomId, roomPlayers)
-        client.emit("TableJoined", {player:player , roomPlayers:roomPlayers})
+        this.server.to(String(client.data.roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
         console.warn(roomPlayers)
     }
     else{
       roomPlayers = [player]
       this.RoomPlayersMap.set(roomId, roomPlayers)
-      client.emit("TableJoined", {player:player , roomPlayers:roomPlayers})
+      this.server.to(String(client.data.roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
     }
     this.RoomPlayersMap.set(roomId, [player])
     
@@ -137,7 +137,12 @@ export class RoomsGateway implements OnGatewayConnection {
           this.server.to(String(client.data.roomId)).emit('userLeavedTable', {roomPlayers:roomPlayers})
           clearTimeout(timeout);
         })
-        this.handleGameStart(roomId, roomPlayers)
+        if(this.RoomPlayersMap.get(roomId)!.length>=2)
+          this.handleGameStart(roomId, roomPlayers)
+        else{
+          clearTimeout(timeout)
+          this.server.to(String(client.data.roomId)).emit("notEnoughtPlayers")
+        }
       }, 5000);
     }
 
