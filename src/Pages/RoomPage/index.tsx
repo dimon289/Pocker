@@ -13,6 +13,7 @@ interface Player {
   roomid: number;
 }
 type ServerToClientEvents = {
+  connect: (data: { roomPlayers:Player[] } )=>void
   userJoined: (data: { usersId: string[] }) => void;
   Client_disconnected: (data :{userId: string}) => void;
   TableJoined:(data: {player:Player, roomPlayers:Player[]})=>void;
@@ -56,7 +57,8 @@ const RoomPage: React.FC = () => {
     }
   });
 
-  newSocket.on('connect', () => {
+  newSocket.on('connect', ({ roomPlayers }) => {
+    setPlayers(roomPlayers)
     console.log('WebSocket connected');
   });
 
