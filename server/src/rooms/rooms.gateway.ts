@@ -424,16 +424,20 @@ export class RoomsGateway implements OnGatewayConnection {
   async handlePreflop(roomId: number, poker: poker, roomPlayers: players[]){
     this.server.to(String(roomId)).emit("preFlopStarted", {roomPlayers})
     let lastStep = await this.betCircle(roomId, poker, roomPlayers)
-    console.warn('aboba')
+    console.warn('preFlop betCirle End')
     lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
+    console.warn('preFlop balancingCircle End')
     this.server.to(String(roomId)).emit('preFlopEND');
     this.handleFlop(roomId, poker, roomPlayers, lastStep)
   }
 
   async handleFlop(roomId: number, poker: poker, roomPlayers: players[], lastStep){
+    console.warn('Flop started')
     this.server.to(String(roomId)).emit("FlopStarted", {cards: [poker.cards[0],poker.cards[1],poker.cards[2]]})
     lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
+    console.warn('Flop betCirle End')
     lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
+    console.warn('Flop balancingCircle End')
     this.server.to(String(roomId)).emit('FlopEND');
     this.handleTurn(roomId, poker, roomPlayers, lastStep)
   }
@@ -441,7 +445,9 @@ export class RoomsGateway implements OnGatewayConnection {
   async handleTurn(roomId: number, poker: poker, roomPlayers: players[], lastStep){
     this.server.to(String(roomId)).emit("TurnStarted", {cards: [poker.cards[3]]})
     lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
+    console.warn('Turn betCirle End')
     lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
+    console.warn('Turn balancingCircle End')
     this.server.to(String(roomId)).emit('TurnEND');
     this.handleRiver(roomId, poker, roomPlayers, lastStep)
   }  
@@ -449,7 +455,9 @@ export class RoomsGateway implements OnGatewayConnection {
   async handleRiver(roomId: number, poker: poker, roomPlayers: players[], lastStep){
     this.server.to(String(roomId)).emit("RiverStarted", {cards: [poker.cards[4]]})
     lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
+    console.warn('River betCirle End')
     lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
+    console.warn('River balancingCircle End')
     this.server.to(String(roomId)).emit('RiverEND');
     this.handleShowdown(roomId, poker, roomPlayers, lastStep)
   } 
