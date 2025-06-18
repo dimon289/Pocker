@@ -10,13 +10,16 @@ const apiUrl = import.meta.env.VITE_API_URL;
 interface Player {
   id: number;
   userid: number;
-  useravatar:string;
-  usernickname:string;
   cards: string[];
   roomid: number;
   status:Boolean;
 }
-
+interface PlayerinGame {
+  player: Player
+  useravatar : string
+  usernickname : string
+  positionClasses: string
+}
 type ServerToClientEvents = {
   userJoined: (data: { usersId: string[], roomPlayers:Player[]   }) => void;
   Client_disconnected: (data :{userId: string}) => void;
@@ -35,6 +38,7 @@ const RoomPage: React.FC = () => {
   const userId = useSelector((state:RootState) => state.user.userId)
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [playersInGame, setPlayersInGame] = useState<PlayerinGame[]>([])
   // const [yourCards, setYourCards] = useState<string[]>([]);
   // const [communityCards, setCommunityCards] = useState<string[]>([]);
   // const [potChips, setPotChips] = useState<number>(0);
@@ -104,7 +108,73 @@ const RoomPage: React.FC = () => {
     
     return user 
   }
+  useEffect(() => {
+    const updatePlayersInGame = async () => {
+      const seatPositions = ['bottom-left', 'top-left', 'top', 'top-right', 'bottom-right', 'bottom'];
 
+      for (let index = 0; index < players.length; index++) {
+        const player = players[index];
+
+        try {
+          const user = await getUser(player.userid);
+          const avatar = user.data.avatar;
+          const username = user.data.nickname;
+
+          const seat = seatPositions[index];
+          let positionClasses = '';
+          switch (seat) {
+            case 'top':
+              positionClasses = 'top-4 left-1/2 -translate-x-1/2';
+              break;
+            case 'top-left':
+              positionClasses = 'top-10 left-24';
+              break;
+            case 'top-right':
+              positionClasses = 'top-10 right-24';
+              break;
+            case 'bottom-left':
+              positionClasses = 'bottom-16 left-24';
+              break;
+            case 'bottom-right':
+              positionClasses = 'bottom-16 right-24';
+              break;
+            case 'bottom':
+              positionClasses = 'bottom-16 left-1/2 -translate-x-1/2';
+              break;
+          }
+
+          const updatedPlayer = {
+            player: player,
+            useravatar: avatar,
+            usernickname: username,
+            positionClasses: positionClasses,
+          };
+
+          setPlayersInGame(prevPlayers => {
+            const idx = prevPlayers.findIndex(p => p.player.id === player.id);
+            if (idx !== -1) {
+              const updated = [...prevPlayers];
+              updated[idx] = updatedPlayer;
+              return updated;
+            } else {
+              return [...prevPlayers, updatedPlayer];
+            }
+          });
+        } catch (error) {
+          console.error("Error loading user for player", player, error);
+        }
+      }
+    };
+
+    if (players.length > 0) {
+      updatePlayersInGame();
+    }
+  }, [players, userId]);
+
+
+
+
+  
   
 
   return (
@@ -131,60 +201,25 @@ const RoomPage: React.FC = () => {
         </div>
 
         {/* Players */}
-        {players && players
-          .map((player, index) => {
-            
-            const baseClasses = 'absolute flex flex-col items-center';
-            const cardClasses = 'flex gap-2 text-5xl mt-2';
-            let avatar = player.useravatar;
-            let username = player.usernickname;
-            
-
-            const currentPlayerIndex = players.findIndex(p => p.userid === Number(userId));
-            const rotatedIndex = (index - currentPlayerIndex + players.length - 1) % (players.length - 1);
-
-            // 5 позицій (без 'bottom')
-            const seatPositions = ['bottom-left', 'top-left', 'top', 'top-right', 'bottom-right', 'bottom'];
-            const seat = seatPositions[rotatedIndex % seatPositions.length];
-
-            let positionClasses = '';
-            switch (seat) {
-              case 'top':
-                positionClasses = 'top-4 left-1/2 -translate-x-1/2';
-                break;
-              case 'top-left':
-                positionClasses = 'top-10 left-24';
-                break;
-              case 'top-right':
-                positionClasses = 'top-10 right-24';
-                break;
-              case 'bottom-left':
-                positionClasses = 'bottom-16 left-24';
-                break;
-              case 'bottom-right':
-                positionClasses = 'bottom-16 right-24';
-                break;
-              case 'bottom':
-                positionClasses = 'bottom-16 left-1/2 -translate-x-1/2'
-            }
+        {playersInGame &&  playersInGame.map((player)=>{
 
             return (
-              <div key={player.id} className={`${baseClasses} ${positionClasses}`}>
+              <div key={player.player.id} className={`absolute flex flex-col items-center ${player.positionClasses}`}>
                 <img
                   className="w-16 h-16 rounded-full border-2 border-white"
-                  src={avatar}
-                  alt={`Player ${username}`}
+                  src={player.useravatar}
+                  alt={`Player ${player.usernickname}`}
                 />
-                <div className="text-sm mt-1">{username}</div>
-                <div className={cardClasses}>
-                  {player.cards.map((card, idx) => (
+                <div className="text-sm mt-1">{player.usernickname}</div>
+                <div className={'flex gap-2 text-5xl mt-2'}>
+                  {player.player.cards.map((card, idx) => (
                     <span key={idx}>{card}</span>
                   ))}
                 </div>
               </div>
             );
-          })
-        }
+    
+        })}
         {/* Your Cards */}
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2">
           <div className="flex gap-4 text-6xl">
