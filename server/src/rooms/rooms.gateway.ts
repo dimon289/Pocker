@@ -110,12 +110,12 @@ export class RoomsGateway implements OnGatewayConnection {
         client.emit("TableFull")
       else
         roomPlayers.push(player)
-        client.emit("TableJoined", {userId})
+        client.emit("TableJoined", {player:player , roomPlayers:roomPlayers})
         console.warn(roomPlayers)
     }
     else{
       roomPlayers = [player]
-      client.emit("TableJoined", {userId})
+      client.emit("TableJoined", {player:player , roomPlayers:roomPlayers})
     }
     this.RoomPlayersMap.set(roomId, [player])
     
