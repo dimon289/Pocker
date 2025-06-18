@@ -311,6 +311,7 @@ export class RoomsGateway implements OnGatewayConnection {
           resolve()
         });
       }).then(()=>{
+        poker.stepsid.push(lastStep!.id)
         this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep});
       });
     }
@@ -400,6 +401,7 @@ export class RoomsGateway implements OnGatewayConnection {
           resolve()
         });
       }).then(()=>{
+        poker.stepsid.push(lastStep!.id)
         this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep});
       });
     }
