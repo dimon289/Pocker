@@ -240,11 +240,12 @@ export class RoomsGateway implements OnGatewayConnection {
       }
       else{
         currMaxBet = maxBet
-        currMinBet = 0.05
       }
-      if(biggestBet>maxBet)
-        currMinBet = currMaxBet
-      
+      if(biggestBet){
+        currMinBet = biggestBet
+        if (biggestBet>currMaxBet) 
+          currMinBet = currMaxBet          
+      }
 
 
       this.server.to(String(roomId)).emit('playerTurn', {playerId: player.id});
@@ -336,10 +337,12 @@ export class RoomsGateway implements OnGatewayConnection {
       }
       else{
         currMaxBet = maxBet
-        currMinBet = 0.05
       }
-      if(biggestBet>maxBet)
-        currMinBet = currMaxBet
+      if(biggestBet){
+        currMinBet = biggestBet
+        if (biggestBet>currMaxBet) 
+          currMinBet = currMaxBet          
+      }
       
 
       this.server.to(String(roomId)).emit('playerTurn', currMaxBet);
