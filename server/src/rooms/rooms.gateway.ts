@@ -203,9 +203,6 @@ export class RoomsGateway implements OnGatewayConnection {
   stepTypeDefine(lastStep: step|null, currBet:number, Bet: number, balance: number){
     if (!lastStep)
       return StepTypeEnum.First;
-    else if (currBet === 0 && lastStep.steptype !== StepTypeEnum.Check||
-             Number(lastStep.bet) === Bet && lastStep.steptype === StepTypeEnum.First)
-      return StepTypeEnum.Fold
     else if (Bet === balance)
       return StepTypeEnum.Allin
     else if(lastStep.steptype === StepTypeEnum.Check && currBet === 0)
@@ -218,6 +215,8 @@ export class RoomsGateway implements OnGatewayConnection {
       return StepTypeEnum.ReRaise;
     else if (Bet > Number(lastStep.bet))
       return StepTypeEnum.Raise;
+    else if (currBet === 0 && lastStep.steptype !== StepTypeEnum.Check)
+      return StepTypeEnum.Fold
 
     return StepTypeEnum.Fold
   }
