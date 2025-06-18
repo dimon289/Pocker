@@ -28,6 +28,9 @@ type ServerToClientEvents = {
   yourCards: (data: {cards:string[]})=>void;
   playerTurn: (data: {playerId:number}) =>void;
   makeYourStep: (data: {currMaxBet:number, currMinBet:number}) => void;
+  FlopStarted: (data: {cards:string[]})=>void;
+  TurnStarted: (data: {cards:string[]})=>void;
+  RiverStarted:(data: {cards:string[]})=>void;
 };
 
 type ClientToServerEvents = {
@@ -45,7 +48,7 @@ const RoomPage: React.FC = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [playersInGame, setPlayersInGame] = useState<PlayerinGame[]>([])
   const [yourCards, setYourCards] = useState<string[]>([]);
-  // const [communityCards, setCommunityCards] = useState<string[]>([]);
+  const [communityCards, setCommunityCards] = useState<string[]>([]);
   // const [potChips, setPotChips] = useState<number>(0);
   const [messages, setMessages] = useState<string[]>([]);
   const [gameStatus, setGameStatus] = useState<string>('Waiting for players...');
@@ -108,16 +111,25 @@ const RoomPage: React.FC = () => {
   })
 
   newSocket.on('playerTurn',({playerId})=>{
+      console.log(playerId)
       setCurrentPlayerId(playerId);
       setIsYourTurn(false)
 
   })
   newSocket.on('makeYourStep',({currMaxBet, currMinBet})=>{
-    console.warn(currMinBet, " ", currMaxBet)
     setIsYourTurn(true)
     setMaxbet(currMaxBet)
     setMinbet(currMinBet)
   })  
+  newSocket.on('FlopStarted', ({cards})=>{
+    setCommunityCards(prevCards => [...prevCards, ...cards])
+  })
+  newSocket.on('TurnStarted', ({cards})=>{
+    setCommunityCards(prevCards => [...prevCards, ...cards])
+  })
+  newSocket.on('RiverStarted', ({cards})=>{
+    setCommunityCards(prevCards => [...prevCards, ...cards])
+  })
   setSocket(newSocket);
   socketRef.current = newSocket;
 
@@ -270,9 +282,9 @@ const RoomPage: React.FC = () => {
 
         {/* Community Cards */}
         <div className="flex gap-6 text-6xl z-10">
-          {/* {communityCards.map((card, index) => (
-            <span key={index}>{card}</span>
-          ))} */}
+          {communityCards.map((card, index) => (
+            <span key={index}>{getCardUnicode(card)}</span>
+          ))} 
         </div>
 
         {/* Pot */}
@@ -282,17 +294,31 @@ const RoomPage: React.FC = () => {
         </div>
 
         {/* Players */}
-        {playersInGame &&  playersInGame.map(player => {
-          const isCurrent = player.player.userid === currentPlayerId; // або player.player.id залежно від ID
+        {playersInGame && playersInGame.map(player => {
+          const isCurrent = player.player.id === currentPlayerId;
+
           return (
-            <div key={player.player.id} className={`absolute flex flex-col items-center ${player.positionClasses}`}>
+            <div
+              key={player.player.id}
+              className={`absolute flex flex-col items-center transition-all duration-300 ${player.positionClasses} ${
+                isCurrent ? 'scale-110 z-10' : ''
+              }`}
+            >
               <img
-                className="w-16 h-16 rounded-full border-2 border-white"
+                className={`w-16 h-16 rounded-full border-2 ${
+                  isCurrent ? 'border-green-400 ring-4 ring-green-300 animate-pulse' : 'border-white'
+                }`}
                 src={player.useravatar}
                 alt={`Player ${player.usernickname}`}
               />
-              <div className="text-sm mt-1">
-                {isCurrent ? `♥ ${player.usernickname} ♥` : player.usernickname}
+              <div
+                className={`mt-1 px-2 py-1 rounded-md ${
+                  isCurrent
+                    ? 'text-yellow-400 font-extrabold text-lg animate-pulse'
+                    : 'text-white text-sm'
+                }`}
+              >
+                {player.usernickname}
               </div>
               <div className={'flex gap-2 text-5xl mt-2'}>
                 {player.player.cards.map((card, idx) => (
