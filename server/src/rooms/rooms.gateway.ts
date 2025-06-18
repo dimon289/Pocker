@@ -138,23 +138,25 @@ export class RoomsGateway implements OnGatewayConnection {
     this.RoomPlayersMap.set(roomId, [player])
     
     if(roomPlayers.length>=2){
-      this.server.to(String(roomId)).emit("prepare")
+      console.warn("prepare")
+
+      this.server.to(String(client.data.roomId)).emit("prepare")
       const timeout = setTimeout(() => {
-        client.on('leaveTable', (client: Socket)=>{
-          this.server.to(String(client.data.roomId)).emit('gameIsStartingIn5Seconds')
-          let roomPlayers = this.RoomPlayersMap.get(client.data.roomId)!
-          roomPlayers = roomPlayers.filter((player)=>player.userid!==userId)
-          this.RoomPlayersMap.set(client.data.roomId, roomPlayers)
-          this.server.to(String(client.data.roomId)).emit('userLeavedTable', {roomPlayers:roomPlayers})
-          clearTimeout(timeout);
-        })
-        if(this.RoomPlayersMap.get(roomId)!.length>=2)
-          this.handleGameStart(roomId, roomPlayers)
+        console.warn(this.RoomPlayersMap.get(roomId))
+        if(this.RoomPlayersMap.get(roomId)!.length>=2){
+          console.warn("aboba")
+          this.handleGameStart(roomId, roomPlayers)}
         else{
           clearTimeout(timeout)
           this.server.to(String(client.data.roomId)).emit("notEnoughtPlayers")
         }
       }, 5000);
+        client.on('leaveTable', (client: Socket)=>{
+          let roomPlayers = this.RoomPlayersMap.get(client.data.roomId)!
+          roomPlayers = roomPlayers.filter((player)=>player.userid!==userId)
+          this.RoomPlayersMap.set(client.data.roomId, roomPlayers)
+          this.server.to(String(client.data.roomId)).emit('userLeavedTable', {roomPlayers:roomPlayers})
+        })
     }
 
     
@@ -166,6 +168,7 @@ export class RoomsGateway implements OnGatewayConnection {
   }
 
   async handleGameStart(roomId: number, roomPlayers: players[]){
+    console.warn("start")
     this.server.to(String(roomId)).emit("gameStarted", {roomPlayers})
     roomPlayers.forEach(player => {
       this.UseridSocketMap.get(player.userid)?.removeAllListeners('leaveTable')

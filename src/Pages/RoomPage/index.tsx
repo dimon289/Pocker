@@ -24,6 +24,8 @@ type ServerToClientEvents = {
   userJoined: (data: { usersId: string[], roomPlayers:Player[]   }) => void;
   Client_disconnected: (data :{userId: string}) => void;
   TableJoined:(data: {player:Player, roomPlayers:Player[]})=>void;
+  gameStarted:(data: {roomPlayers:Player[]})=>void;
+  yourCards: (data: {cards:string[]})=>void;
 };
 
 type ClientToServerEvents = {
@@ -39,7 +41,7 @@ const RoomPage: React.FC = () => {
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [playersInGame, setPlayersInGame] = useState<PlayerinGame[]>([])
-  // const [yourCards, setYourCards] = useState<string[]>([]);
+  const [yourCards, setYourCards] = useState<string[]>([]);
   // const [communityCards, setCommunityCards] = useState<string[]>([]);
   // const [potChips, setPotChips] = useState<number>(0);
   const [messages, setMessages] = useState<string[]>([]);
@@ -63,11 +65,6 @@ const RoomPage: React.FC = () => {
       wsRoomId: String(roomId),
     }
   });
-
-  newSocket.on('connect', () => {
-    setMessages(prevMessages => [...prevMessages, 'WebSocket connected']);
-  });
-
   newSocket.on('userJoined', ({ usersId, roomPlayers}) => {
     setPlayers(roomPlayers)
     setUsersId(usersId);
@@ -77,15 +74,31 @@ const RoomPage: React.FC = () => {
     let updated_users = usersId?.filter((id) => id !== userId);
     setUsersId(updated_users);
 
-    console.log(`${userId} left the room`);
+    setMessages(prevMessages => [...prevMessages,`${userId} left the room`]);
   });
   
   newSocket.on('TableJoined', ({ player , roomPlayers }) => {
     setPlayers(roomPlayers)
-    console.log(`${player.userid} joined the table`);
+    setMessages(prevMessages => [...prevMessages,`${player.userid} joined the table`]);
     setHasJoinedTable(true)
   });
-
+  newSocket.on('gameStarted', ({roomPlayers})=>{
+      setPlayers(roomPlayers)
+      setMessages(prevMessages => [...prevMessages,'Game Started'])
+      setGameStatus('Game Started');
+  })
+  newSocket.on('yourCards', ({cards})=>{
+    setYourCards(cards)
+    setPlayersInGame(prevPlayers =>
+      prevPlayers.map(p => ({
+        ...p,
+        player: {
+          ...p.player,
+          cards: ["🂠", "🂠"]  // 2 закриті карти для всіх
+        }
+      }))
+    );
+  })
   setSocket(newSocket);
   socketRef.current = newSocket;
 
@@ -97,7 +110,7 @@ const RoomPage: React.FC = () => {
   const handleJoinTable = () => {
     if (socket) {
       socket.emit('joinTable', Number(userId) );
-      console.log('Запит на приєднання до столу надіслано');
+      setMessages(prevMessages => [...prevMessages,'Запит на приєднання до столу надіслано']);
     }
   };
   const getUser = async(userId:number) => {
@@ -223,16 +236,16 @@ const RoomPage: React.FC = () => {
         {/* Your Cards */}
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2">
           <div className="flex gap-4 text-6xl">
-            {/* {yourCards.map((card, idx) => (
+            {yourCards.map((card, idx) => (
               <span key={idx}>{card}</span>
-            ))} */}
+            ))}
           </div>
         </div>
       </div>
 
       {/* Controls */}
       <div className="mt-6 flex flex-col items-center">
-        {!hasJoinedTable && (
+        {(!hasJoinedTable && gameStatus =='Waiting for players...') && (
           <button
             onClick={handleJoinTable}
             className="mb-4 bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-4 px-12 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105"
