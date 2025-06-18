@@ -338,9 +338,9 @@ export class RoomsGateway implements OnGatewayConnection {
   async balancingCircle(roomId: number, poker: poker, roomPlayers: players[],lastStep: step | undefined = undefined){
     console.warn('blablabla')
     for (const player of roomPlayers) {
-      if(!player.status) return;// skip if player is loose or fold
+      if(!player.status) return lastStep;// skip if player is loose or fold
       if(Math.round(Number((await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id))!.bet)*100)/100 === Math.round(Number(lastStep!.bet)*100)/100)
-        return
+        return lastStep
 
       const socket = this.UseridSocketMap.get(player.userid)!
       const user = await this.usersService.finByPlayer(player)
@@ -440,18 +440,17 @@ export class RoomsGateway implements OnGatewayConnection {
     console.warn('preFlop balancingCircle End')
     this.server.to(String(roomId)).emit('preFlopEND');
     await this.handleFlop(roomId, poker, roomPlayers, lastStep)
-    await this.handleFlop(roomId, poker, roomPlayers, lastStep)
   }
 
   async handleFlop(roomId: number, poker: poker, roomPlayers: players[], lastStep: step | undefined){
     console.warn('Flop started')
+    console.warn(lastStep)
     this.server.to(String(roomId)).emit("FlopStarted", {cards: [poker.cards[0],poker.cards[1],poker.cards[2]]})
     lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
     console.warn('Flop betCirle End')
     lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
     console.warn('Flop balancingCircle End')
     this.server.to(String(roomId)).emit('FlopEND');
-    await this.handleTurn(roomId, poker, roomPlayers, lastStep)
     await this.handleTurn(roomId, poker, roomPlayers, lastStep)
   }
 
@@ -463,7 +462,6 @@ export class RoomsGateway implements OnGatewayConnection {
     console.warn('Turn balancingCircle End')
     this.server.to(String(roomId)).emit('TurnEND');
     await this.handleRiver(roomId, poker, roomPlayers, lastStep)
-    await this.handleRiver(roomId, poker, roomPlayers, lastStep)
   }  
 
   async handleRiver(roomId: number, poker: poker, roomPlayers: players[], lastStep){
@@ -473,7 +471,6 @@ export class RoomsGateway implements OnGatewayConnection {
     lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
     console.warn('River balancingCircle End')
     this.server.to(String(roomId)).emit('RiverEND');
-    await this.handleShowdown(roomId, poker, roomPlayers, lastStep)
     await this.handleShowdown(roomId, poker, roomPlayers, lastStep)
   } 
   async handleShowdown(roomId: number, poker: poker, roomPlayers: players[], lastStep){

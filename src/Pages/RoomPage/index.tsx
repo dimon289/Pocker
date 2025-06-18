@@ -116,6 +116,7 @@ const RoomPage: React.FC = () => {
     );
   })
   newSocket.on('makeYourStep',({currMaxBet, currMinBet})=>{
+    console.log("DO IT")
     setPotChips(0)
     setIsYourTurn(true)
     setMaxbet(currMaxBet)
