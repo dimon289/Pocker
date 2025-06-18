@@ -210,7 +210,7 @@ export class RoomsGateway implements OnGatewayConnection {
     if (Bet === balance)
       return StepTypeEnum.Allin
 
-    if(lastStep.steptype === StepTypeEnum.Check && currBet === 0)
+    if(lastStep.steptype === StepTypeEnum.Check && lastBet == Bet)
       return StepTypeEnum.Check;
     // console.warn('lastStep.steptype === StepTypeEnum.First: ' + (lastStep.steptype === StepTypeEnum.First) + ' Bet === Number(lastStep.bet): '+ (Bet === Number(lastStep.bet)))
     if ((lastStep.steptype === StepTypeEnum.Raise && Bet === lastBet)||
@@ -233,7 +233,7 @@ export class RoomsGateway implements OnGatewayConnection {
 
   async betCircle(roomId: number, poker: poker, roomPlayers: players[],lastStep: step | undefined = undefined){
     for (const player of roomPlayers) {
-      if(!player.status) return;// skip if player is loose or fold
+      if(!player.status) continue;// skip if player is loose or fold
 
       const socket = this.UseridSocketMap.get(player.userid)!
       const user = await this.usersService.finByPlayer(player)
@@ -328,19 +328,19 @@ export class RoomsGateway implements OnGatewayConnection {
         });
       }).then(()=>{
         poker.stepsid.push(lastStep!.id)
-        this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep});
+        this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep: lastStep, bank: poker.bank});
         console.warn(lastStep)
       });
     }
     return lastStep
   }
 
-  async balancingCircle(roomId: number, poker: poker, roomPlayers: players[],lastStep: step | undefined = undefined){
+  async balancingCircle(roomId: number, poker: poker, roomPlayers: players[],lastStep: step | undefined){
     console.warn('blablabla')
     for (const player of roomPlayers) {
-      if(!player.status) return lastStep;// skip if player is loose or fold
+      if(!player.status) continue;// skip if player is loose or fold
       if(Math.round(Number((await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id))!.bet)*100)/100 === Math.round(Number(lastStep!.bet)*100)/100)
-        return lastStep
+        continue
 
       const socket = this.UseridSocketMap.get(player.userid)!
       const user = await this.usersService.finByPlayer(player)
@@ -475,37 +475,6 @@ export class RoomsGateway implements OnGatewayConnection {
   } 
   async handleShowdown(roomId: number, poker: poker, roomPlayers: players[], lastStep){
     this.server.to(String(roomId)).emit('Showdown'); 
-    const suits = ['♥', '♦', '♠', '♣'];
-    const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '1', 'J', 'Q', 'K', 'A'];
-    let flashRolyales: string[][][] = [];
-    let streatFlashes: string[][][];
-    let kare: string[][][];
-    let fullHouse: string[][][];
-    let streat: string[][][];
-    let set: string[][][];
-    let twoPairs: string[][][];
-    let Pair: string[][][];
-    let biggesCard: string[][][];
-    suits.map(()=>{
-    })
-    
-    const combinations: string[][][][] = [
-      [[['♥A','♥K','♥Q','♥J','♥1'],['♦A','♦K','♦Q','♦J','♦1'],['♠A','♠K','♠Q','♠J','♠1'],['♣A','♣K','♣Q','♣J','♣1']]],// all flesh royal
-      [[['♥A','♥2','♥3','♥4','♥5'],['♦A','♦2','♦3','♦4','♦5'],['♠A','♠2','♠3','♠4','♠5'],['♣A','♣2','♣3','♣4','♣5']],// streat-flesh start
-      [['♥2','♥3','♥4','♥5','♥6'],['♦2','♦3','♦4','♦5','♦6'],['♠2','♠3','♠4','♠5','♠6'],['♣2','♣3','♣4','♣5','♣6']],
-      [['♥3','♥4','♥5','♥6','♥7'],['♦3','♦4','♦5','♦6','♦7'],['♠3','♠4','♠5','♠6','♠7'],['♣3','♣4','♣5','♣6','♣7']],
-      [['♥4','♥5','♥6','♥7','♥8'],['♦4','♦5','♦6','♦7','♦8'],['♠4','♠5','♠6','♠7','♠8'],['♣4','♣5','♣6','♣7','♣8']],
-      [['♥5','♥6','♥7','♥8','♥9'],['♦5','♦6','♦7','♦8','♦9'],['♠5','♠6','♠7','♠8','♠9'],['♣5','♣6','♣7','♣8','♣9']],
-      [['♥6','♥7','♥8','♥9','♥1'],['♦6','♦7','♦8','♦9','♦1'],['♠6','♠7','♠8','♠9','♠1'],['♣6','♣7','♣8','♣9','♣1']],
-      [['♥7','♥8','♥9','♥1','♥J'],['♦7','♦8','♦9','♦1','♦J'],['♠7','♠8','♠9','♠1','♠J'],['♣7','♣8','♣9','♣1','♣J']],
-      [['♥8','♥9','♥1','♥J','♥Q'],['♦8','♦9','♦1','♦J','♦Q'],['♠8','♠9','♠1','♠J','♠Q'],['♣8','♣9','♣1','♣J','♣Q']],
-      [['♥9','♥1','♥J','♥Q','♥K'],['♦9','♦1','♦J','♦Q','♦K'],['♠9','♠1','♠J','♠Q','♠K'],['♣9','♣1','♣J','♣Q','♣K']]],// streat-flesh end
-      [[['♥A','♦A','♠A','♣A']],[['♥K','♦K','♠K','♣K']],[['♥Q','♦Q','♠Q','♣Q']],[['♥J','♦J','♠J','♣J']],[['♥1','♦1','♠1','♣1']],[['♥9','♦9','♠9','♣9']],[['♥8','♦8','♠8','♣8']],//kare start
-      [['♥7','♦7','♠7','♣7']],[['♥6','♦6','♠6','♣6']],[['♥5','♦5','♠5','♣5']],[['♥4','♦4','♠4','♣4']],[['♥3','♦3','♠3','♣3']],[['♥2','♦2','♠2','♣2']],],//kare end
-      [[['AAA','AAA','AAA','AAA','AAA',]]//full-house
-
-      ],
-      
-      ]  
+    // const PlayerCombinationMap = new Map<players, >
   }
 }

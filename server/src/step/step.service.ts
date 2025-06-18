@@ -49,4 +49,12 @@ export class StepService {
     let pokerStepsBets:number[] = pokerSteps.map(step => Number(step.bet))
     return Math.max(...pokerStepsBets)
   }
+  async findLastPokerStep(pokerId: number){
+    return await this.prisma.step.findFirst({
+      where:{
+        pockerid: pokerId,
+      },
+      orderBy:{id: 'desc'}
+    })
+  }
 }
