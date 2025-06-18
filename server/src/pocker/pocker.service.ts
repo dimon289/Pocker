@@ -12,6 +12,7 @@ export class PockerService {
     playersid: number[];
     cards: string[];
     bank: number;
+    stepsid:[];
   }): Promise<poker> {
     return this.prisma.poker.create({ data });
   }
@@ -29,10 +30,9 @@ export class PockerService {
   }
 
   // Отримати гру за її ID або помилка, якщо не знайдено
-  async findById(id: number): Promise<poker & { step: step | null }> {
+  async findById(id: number): Promise<poker> {
     const game = await this.prisma.poker.findUnique({
       where: { id },
-      include: { step: true },
     });
     if (!game) {
       throw new NotFoundException(`Pocker with id ${id} not found`);
