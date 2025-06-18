@@ -114,11 +114,13 @@ export class RoomsGateway implements OnGatewayConnection {
         client.emit("TableFull")
       else
         roomPlayers.push(player)
+        this.RoomPlayersMap.set(roomId, roomPlayers)
         client.emit("TableJoined", {player:player , roomPlayers:roomPlayers})
         console.warn(roomPlayers)
     }
     else{
       roomPlayers = [player]
+      this.RoomPlayersMap.set(roomId, roomPlayers)
       client.emit("TableJoined", {player:player , roomPlayers:roomPlayers})
     }
     this.RoomPlayersMap.set(roomId, [player])
@@ -129,6 +131,18 @@ export class RoomsGateway implements OnGatewayConnection {
         this.handleGameStart(roomId, roomPlayers)
       }, 5000);
     }
+
+    client.on('leaveTable', (client: Socket)=>{
+      let roomPlayers = this.RoomPlayersMap.get(client.data.roomId)!
+      roomPlayers = roomPlayers.filter((player)=>player.userid!==userId)
+      this.RoomPlayersMap.set(client.data.roomId, roomPlayers)
+      this.server.to(String(client.data.roomId)).emit('userLeavedTable', {roomPlayers:roomPlayers})
+    })
+  }
+
+  @SubscribeMessage('leaveTable')
+  async handleLeaveTable(client: Socket, userId: number) {
+    
   }
 
   async handleGameStart(roomId: number, roomPlayers: players[]){
