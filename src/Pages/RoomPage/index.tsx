@@ -184,7 +184,43 @@ const RoomPage: React.FC = () => {
     }
   }, [players, userId]);
 
+      function getCardUnicode(card: string): string {
+      const suit = card[0]; // '♦'
+      const value = card.slice(1); // '1'
 
+      // Мапа мастей до base Unicode значень
+      const suitBase: { [key: string]: number } = {
+        '♠': 0x1F0A0, // Spades
+        '♥': 0x1F0B0, // Hearts
+        '♦': 0x1F0C0, // Diamonds
+        '♣': 0x1F0D0, // Clubs
+      };
+
+      // Мапа значень (у Unicode деякі значення пропущені)
+      const valueMap: { [key: string]: number } = {
+        'A': 0x1,   // Туз
+        '2': 0x2,
+        '3': 0x3,
+        '4': 0x4,
+        '5': 0x5,
+        '6': 0x6,
+        '7': 0x7,
+        '8': 0x8,
+        '9': 0x9,
+        '1': 0xA,
+        'J': 0xB,  // Валет
+        'Q': 0xD,  // Дама (C пропущено)
+        'K': 0xE,  // Король
+      };
+
+      const base = suitBase[suit];
+      const code = valueMap[value];
+
+      if (!base || !code) return '🂠'; // невідома карта
+
+      // Отримаємо символ карти
+      return String.fromCodePoint(base + code);
+    }
 
 
   
@@ -224,11 +260,11 @@ const RoomPage: React.FC = () => {
                   alt={`Player ${player.usernickname}`}
                 />
                 <div className="text-sm mt-1">{player.usernickname}</div>
-                <div className={'flex gap-2 text-5xl mt-2'}>
-                  {player.player.cards.map((card, idx) => (
-                    <span key={idx}>{card}</span>
-                  ))}
-                </div>
+                  <div className={'flex gap-2 text-5xl mt-2'}>
+                      {player.player.cards.map((card, idx) => (
+                        <span key={idx}>{card}</span>
+                      ))}
+                  </div>
               </div>
             );
     
@@ -236,9 +272,9 @@ const RoomPage: React.FC = () => {
         {/* Your Cards */}
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2">
           <div className="flex gap-4 text-6xl">
-            {yourCards.map((card, idx) => (
-              <span key={idx}>{card}</span>
-            ))}
+              {yourCards.map((card, idx) => (
+                <span key={idx}>{getCardUnicode(card)}</span>
+              ))}
           </div>
         </div>
       </div>

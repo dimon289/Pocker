@@ -135,7 +135,6 @@ export class RoomsGateway implements OnGatewayConnection {
       this.RoomPlayersMap.set(roomId, roomPlayers)
       this.server.to(String(client.data.roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
     }
-    this.RoomPlayersMap.set(roomId, [player])
     
     if(roomPlayers.length>=2){
       console.warn("prepare")
