@@ -248,21 +248,24 @@ export class RoomsGateway implements OnGatewayConnection {
         prewBet = Math.round(Number(prewStep.bet)*100)/100
         lastBet = Math.round(Number(lastStep!.bet)*100)/100
         currMaxBet = maxBet-prewBet
-        currMinBet = (lastBet - prewBet)
+        currMinBet = (biggestBet - prewBet)
       }
       else{
         currMaxBet = maxBet
+        currMinBet = biggestBet 
       }
       if(biggestBet){
-        currMinBet = biggestBet
         if (biggestBet>currMaxBet) 
           currMinBet = currMaxBet          
-      }
+      }else
+        currMinBet = 0.05
+      
 
 
       this.server.to(String(roomId)).emit('playerTurn', {playerId: player.id});
 
-      await new Promise<void>((resolve) => {
+      let Step: step
+      await new Promise<step>((resolve) => {
         let resolved = false;
         const timeout = setTimeout(async () => {
           if (resolved) return;
@@ -270,7 +273,7 @@ export class RoomsGateway implements OnGatewayConnection {
           socket.removeAllListeners('myStep');
           player.status = false
           if(!prewStep){
-            lastStep = await this.stepService.create({
+            Step = await this.stepService.create({
               pockerid: poker.id,
               playerid: player.id,
               bet: 0.05,
@@ -279,14 +282,14 @@ export class RoomsGateway implements OnGatewayConnection {
             });
             poker.bank += 0.05;
           }else{
-          lastStep = await this.stepService.create({
+          Step = await this.stepService.create({
             pockerid: poker.id,
             playerid: player.id,
             bet: prewBet,
             maxbet: maxBet,
             steptype: StepTypeEnum.Fold,
           });}
-          resolve(); 
+          resolve(Step); 
         }, 30000); // 30 сек
         
         
@@ -305,31 +308,37 @@ export class RoomsGateway implements OnGatewayConnection {
             player.status = false;
           }
           bet = Math.round(bet*100)/100
-          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep,currentBet, bet, maxBet);
+          const steptype: StepTypeEnum = this.stepTypeDefine(Step,currentBet, bet, maxBet);
 
           if (resolved) return;
           resolved = true;
           clearTimeout(timeout);
           socket.removeAllListeners('myStep');
 
-          lastStep = await this.stepService.create({
+          Step = await this.stepService.create({
             pockerid: poker.id,
             playerid: player.id,
             bet: bet,
             maxbet: maxBet,
             steptype: steptype,
           });
-
+          Step
           poker.bank += currentBet;
 
-          if (lastStep.steptype === StepTypeEnum.Fold||lastStep.steptype ===StepTypeEnum.Allin)
+          if (Step.steptype === StepTypeEnum.Fold||Step.steptype ===StepTypeEnum.Allin)
             player.status = false; 
-          resolve()
+          resolve(Step)
         });
       }).then(()=>{
-        poker.stepsid.push(lastStep!.id)
-        this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep: lastStep, bank: poker.bank});
-        console.warn(lastStep)
+        poker.stepsid.push(Step!.id)
+        if (lastStep) {
+          if(biggestBet<Number(Step.bet))
+            lastStep = Step
+        }else
+          lastStep = Step
+
+        this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep: Step, bank: poker.bank});
+        console.warn(Step)
       });
     }
     return lastStep
@@ -368,21 +377,22 @@ export class RoomsGateway implements OnGatewayConnection {
       
       this.server.to(String(roomId)).emit('playerTurn', currMaxBet);
 
-      await new Promise<void>((resolve) => {
+      let Step: step
+      await new Promise<step>((resolve) => {
         let resolved = false;
         const timeout = setTimeout(async () => {
           if (resolved) return;
           resolved = true;
           socket.removeAllListeners('myStep');
           player.status = false
-          lastStep = await this.stepService.create({
+          Step = await this.stepService.create({
             pockerid: poker.id,
             playerid: player.id,
             bet: prewBet,
             maxbet: maxBet,
             steptype: StepTypeEnum.Fold,
           });
-          resolve(); 
+          resolve(Step); 
         }, 30000); // 30 sec technical loose 
 
         socket.emit('makeYourStep', {currMaxBet: currMaxBet, currMinBet: currMinBet})
@@ -400,7 +410,7 @@ export class RoomsGateway implements OnGatewayConnection {
             if(currentBet===biggestBet)
               steptype = StepTypeEnum.Check
 
-            lastStep = await this.stepService.create({
+            Step = await this.stepService.create({
               pockerid: poker.id,
               playerid: player.id,
               bet: currMinBet,
@@ -408,7 +418,7 @@ export class RoomsGateway implements OnGatewayConnection {
               steptype: steptype!,
             });
           }else{
-            lastStep = await this.stepService.create({
+            Step = await this.stepService.create({
               pockerid: poker.id,
               playerid: player.id,
               bet: currentBet,
@@ -419,14 +429,19 @@ export class RoomsGateway implements OnGatewayConnection {
           
           poker.bank += currentBet;
 
-          if (lastStep.steptype === StepTypeEnum.Fold||lastStep.steptype ===StepTypeEnum.Allin)
+          if (Step.steptype === StepTypeEnum.Fold||Step.steptype ===StepTypeEnum.Allin)
             player.status = false; 
-          resolve()
+          resolve(Step)
         });
       }).then(()=>{
-        poker.stepsid.push(lastStep!.id)
-        this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep});
-        console.warn(lastStep)
+        poker.stepsid.push(Step!.id)
+        if (lastStep) {
+          if(biggestBet<Number(Step.bet))
+            lastStep = Step
+        }else
+          lastStep = Step
+        this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep: Step});
+        console.warn(Step)
       });
     }
     return lastStep
