@@ -200,7 +200,7 @@ export class RoomsGateway implements OnGatewayConnection {
     this.playersService.updateStatus(playerId, false)
   }
 
-  stepTypeDefine(lastStep: step|null, currBet:number, Bet: number, balance: number){
+  stepTypeDefine(lastStep: step|undefined, currBet:number, Bet: number, balance: number){
     // console.warn('lastStep.steptype: '+lastStep?.steptype + ' lastStep.bet: ' + lastStep?.bet + ' currBet: '+currBet+' Bet:'+Bet+' balance: '+balance)
     if (!lastStep)
       return StepTypeEnum.First;
@@ -229,7 +229,7 @@ export class RoomsGateway implements OnGatewayConnection {
     return StepTypeEnum.Fold
   }
 
-  async betCircle(roomId: number, poker: poker, roomPlayers: players[],lastStep: step | null = null){
+  async betCircle(roomId: number, poker: poker, roomPlayers: players[],lastStep: step | undefined = undefined){
     for (const player of roomPlayers) {
       if(!player.status) return;// skip if player is loose or fold
 
@@ -330,7 +330,7 @@ export class RoomsGateway implements OnGatewayConnection {
     return lastStep
   }
 
-  async balancingCircle(roomId: number, poker: poker, roomPlayers: players[],lastStep: step | null = null){
+  async balancingCircle(roomId: number, poker: poker, roomPlayers: players[],lastStep: step | undefined = undefined){
     for (const player of roomPlayers) {
       if(!player.status) return;// skip if player is loose or fold
       if((await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id))!.bet === lastStep?.bet)
@@ -431,7 +431,7 @@ export class RoomsGateway implements OnGatewayConnection {
     this.handleFlop(roomId, poker, roomPlayers, lastStep)
   }
 
-  async handleFlop(roomId: number, poker: poker, roomPlayers: players[], lastStep){
+  async handleFlop(roomId: number, poker: poker, roomPlayers: players[], lastStep: step | undefined){
     console.warn('Flop started')
     this.server.to(String(roomId)).emit("FlopStarted", {cards: [poker.cards[0],poker.cards[1],poker.cards[2]]})
     lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
