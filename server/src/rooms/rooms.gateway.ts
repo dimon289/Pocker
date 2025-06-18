@@ -202,7 +202,7 @@ export class RoomsGateway implements OnGatewayConnection {
 
   stepTypeDefine(lastStep: step|undefined, currBet:number, Bet: number, balance: number){
     // console.warn('lastStep.steptype: '+lastStep?.steptype + ' lastStep.bet: ' + lastStep?.bet + ' currBet: '+currBet+' Bet:'+Bet+' balance: '+balance)
-    
+    console.warn(lastStep)
     if (!lastStep)
       return StepTypeEnum.First;
 
@@ -232,6 +232,7 @@ export class RoomsGateway implements OnGatewayConnection {
   }
 
   async betCircle(roomId: number, poker: poker, roomPlayers: players[],lastStep: step | undefined = undefined){
+
     for (const player of roomPlayers) {
       if(!player.status) continue;// skip if player is loose or fold
 
@@ -338,14 +339,13 @@ export class RoomsGateway implements OnGatewayConnection {
           lastStep = Step
 
         this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep: Step, bank: poker.bank});
-        console.warn(Step)
+
       });
     }
     return lastStep
   }
 
   async balancingCircle(roomId: number, poker: poker, roomPlayers: players[],lastStep: step | undefined){
-    console.warn('blablabla')
     for (const player of roomPlayers) {
       if(!player.status) continue;// skip if player is loose or fold
       if(Math.round(Number((await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id))!.bet)*100)/100 === Math.round(Number(lastStep!.bet)*100)/100)
@@ -441,7 +441,7 @@ export class RoomsGateway implements OnGatewayConnection {
         }else
           lastStep = Step
         this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep: Step});
-        console.warn(Step)
+
       });
     }
     return lastStep
@@ -470,6 +470,8 @@ export class RoomsGateway implements OnGatewayConnection {
   }
 
   async handleTurn(roomId: number, poker: poker, roomPlayers: players[], lastStep){
+    console.warn('Turn started')
+    console.warn(lastStep)
     this.server.to(String(roomId)).emit("TurnStarted", {cards: [poker.cards[3]]})
     lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
     console.warn('Turn betCirle End')
@@ -480,6 +482,8 @@ export class RoomsGateway implements OnGatewayConnection {
   }  
 
   async handleRiver(roomId: number, poker: poker, roomPlayers: players[], lastStep){
+    console.warn('River started')
+    console.warn(lastStep)
     this.server.to(String(roomId)).emit("RiverStarted", {cards: [poker.cards[4]]})
     lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
     console.warn('River betCirle End')
