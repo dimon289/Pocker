@@ -232,16 +232,19 @@ export class RoomsGateway implements OnGatewayConnection {
       const maxBet = Number(user!.mybalance)
       const prewStep = await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id)
       const biggestBet = (await this.stepService.findBiggestBet(poker.id))
-      let currMaxBet, currMinBet: number
+      let currMaxBet: number, currMinBet: number
         
       if(prewStep){
         currMaxBet = maxBet-Number(prewStep.bet)
         currMinBet = (Number(lastStep!.bet) - Number(prewStep!.bet))
       }
-      else
-      currMaxBet = maxBet
+      else{
+        currMaxBet = maxBet
+        currMinBet = 0.05
+      }
       if(biggestBet>maxBet)
         currMinBet = currMaxBet
+      
 
 
       this.server.to(String(roomId)).emit('playerTurn', {playerId: player.id});
@@ -331,8 +334,10 @@ export class RoomsGateway implements OnGatewayConnection {
         currMaxBet = maxBet-Number(prewStep.bet)
         currMinBet = (Number(lastStep!.bet) - Number(prewStep!.bet))
       }
-      else
-      currMaxBet = maxBet
+      else{
+        currMaxBet = maxBet
+        currMinBet = 0.05
+      }
       if(biggestBet>maxBet)
         currMinBet = currMaxBet
       
