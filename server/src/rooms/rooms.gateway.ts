@@ -95,7 +95,7 @@ export class RoomsGateway implements OnGatewayConnection {
     const allPlayingUsers:number[] = []
     this.RoomPlayersMap.forEach(room => {
       room.forEach(player => {
-        allPlayingUsers.push(player.id)
+        allPlayingUsers.push(player.userid)
       })
     });
     if(allPlayingUsers.includes(userId)){
