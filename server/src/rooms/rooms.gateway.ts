@@ -145,6 +145,9 @@ export class RoomsGateway implements OnGatewayConnection {
 
   async handleGameStart(roomId: number, roomPlayers: players[]){
     this.server.to(String(roomId)).emit("gameStarted", {roomPlayers})
+    roomPlayers.forEach(player => {
+      this.UseridSocketMap.get(player.userid)?.removeAllListeners('leaveTable')
+    }); 
     // Формуємо колоду карт
     const suits = ['♥', '♦', '♠', '♣'];
     const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '1', 'J', 'Q', 'K', 'A'];
