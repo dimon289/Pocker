@@ -135,19 +135,11 @@ export class RoomsGateway implements OnGatewayConnection {
       this.RoomPlayersMap.set(roomId, roomPlayers)
       this.server.to(String(client.data.roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
     }
-    this.RoomPlayersMap.set(roomId, [player])
     
-    if(roomPlayers.length>=2){
+    if(roomPlayers.length==2){
       this.server.to(String(roomId)).emit("prepare")
       const timeout = setTimeout(() => {
-        client.on('leaveTable', (client: Socket)=>{
-          this.server.to(String(client.data.roomId)).emit('gameIsStartingIn5Seconds')
-          let roomPlayers = this.RoomPlayersMap.get(client.data.roomId)!
-          roomPlayers = roomPlayers.filter((player)=>player.userid!==userId)
-          this.RoomPlayersMap.set(client.data.roomId, roomPlayers)
-          this.server.to(String(client.data.roomId)).emit('userLeavedTable', {roomPlayers:roomPlayers})
-          clearTimeout(timeout);
-        })
+        
         if(this.RoomPlayersMap.get(roomId)!.length>=2)
           this.handleGameStart(roomId, roomPlayers)
         else{
@@ -157,13 +149,17 @@ export class RoomsGateway implements OnGatewayConnection {
       }, 5000);
     }
 
+    client.on('leaveTable', (client: Socket)=>{
+      this.server.to(String(client.data.roomId)).emit('gameIsStartingIn5Seconds')
+      let roomPlayers = this.RoomPlayersMap.get(client.data.roomId)!
+      roomPlayers = roomPlayers.filter((player)=>player.userid!==userId)
+      this.RoomPlayersMap.set(client.data.roomId, roomPlayers)
+      this.server.to(String(client.data.roomId)).emit('userLeavedTable', {roomPlayers:roomPlayers})
+    })
     
   }
 
-  @SubscribeMessage('leaveTable')
-  async handleLeaveTable(client: Socket, userId: number) {
-    
-  }
+
 
   async handleGameStart(roomId: number, roomPlayers: players[]){
     this.server.to(String(roomId)).emit("gameStarted", {roomPlayers})
@@ -246,7 +242,7 @@ export class RoomsGateway implements OnGatewayConnection {
       }
       else
         currMaxBet = maxBet
-      this.server.to(String(roomId)).emit('playerTurn', currMaxBet);
+      this.server.to(String(roomId)).emit('playerTurn', {playerId: player.id});
 
       await new Promise<void>((resolve) => {
         let resolved = false;
@@ -264,17 +260,18 @@ export class RoomsGateway implements OnGatewayConnection {
               steptype: StepTypeEnum.Fold,
             });
             poker.bank += 0.05;
-          }
+          }else{
           lastStep = await this.stepService.create({
             pockerid: poker.id,
             playerid: player.id,
             bet: Number(prewBet!.bet),
             maxbet: maxBet,
             steptype: StepTypeEnum.Fold,
-          });
+          });}
           resolve(); 
         }, 30000); // 30 сек
         
+        socket.emit('makeYourStep', {currMaxBet: currMaxBet})
         socket.removeAllListeners('myStep');
         socket.on('myStep', async (currentBet: number) => {
           let bet: number = currentBet;
@@ -435,6 +432,38 @@ export class RoomsGateway implements OnGatewayConnection {
     this.handleShowdown(roomId, poker, roomPlayers, lastStep)
   } 
   async handleShowdown(roomId: number, poker: poker, roomPlayers: players[], lastStep){
-    this.server.to(String(roomId)).emit('Showdown');  
+    this.server.to(String(roomId)).emit('Showdown'); 
+    const suits = ['♥', '♦', '♠', '♣'];
+    const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '1', 'J', 'Q', 'K', 'A'];
+    let flashRolyales: string[][][] = [];
+    let streatFlashes: string[][][];
+    let kare: string[][][];
+    let fullHouse: string[][][];
+    let streat: string[][][];
+    let set: string[][][];
+    let twoPairs: string[][][];
+    let Pair: string[][][];
+    let biggesCard: string[][][];
+    suits.map(()=>{
+    })
+    
+    const combinations: string[][][][] = [
+      [[['♥A','♥K','♥Q','♥J','♥1'],['♦A','♦K','♦Q','♦J','♦1'],['♠A','♠K','♠Q','♠J','♠1'],['♣A','♣K','♣Q','♣J','♣1']]],// all flesh royal
+      [[['♥A','♥2','♥3','♥4','♥5'],['♦A','♦2','♦3','♦4','♦5'],['♠A','♠2','♠3','♠4','♠5'],['♣A','♣2','♣3','♣4','♣5']],// streat-flesh start
+      [['♥2','♥3','♥4','♥5','♥6'],['♦2','♦3','♦4','♦5','♦6'],['♠2','♠3','♠4','♠5','♠6'],['♣2','♣3','♣4','♣5','♣6']],
+      [['♥3','♥4','♥5','♥6','♥7'],['♦3','♦4','♦5','♦6','♦7'],['♠3','♠4','♠5','♠6','♠7'],['♣3','♣4','♣5','♣6','♣7']],
+      [['♥4','♥5','♥6','♥7','♥8'],['♦4','♦5','♦6','♦7','♦8'],['♠4','♠5','♠6','♠7','♠8'],['♣4','♣5','♣6','♣7','♣8']],
+      [['♥5','♥6','♥7','♥8','♥9'],['♦5','♦6','♦7','♦8','♦9'],['♠5','♠6','♠7','♠8','♠9'],['♣5','♣6','♣7','♣8','♣9']],
+      [['♥6','♥7','♥8','♥9','♥1'],['♦6','♦7','♦8','♦9','♦1'],['♠6','♠7','♠8','♠9','♠1'],['♣6','♣7','♣8','♣9','♣1']],
+      [['♥7','♥8','♥9','♥1','♥J'],['♦7','♦8','♦9','♦1','♦J'],['♠7','♠8','♠9','♠1','♠J'],['♣7','♣8','♣9','♣1','♣J']],
+      [['♥8','♥9','♥1','♥J','♥Q'],['♦8','♦9','♦1','♦J','♦Q'],['♠8','♠9','♠1','♠J','♠Q'],['♣8','♣9','♣1','♣J','♣Q']],
+      [['♥9','♥1','♥J','♥Q','♥K'],['♦9','♦1','♦J','♦Q','♦K'],['♠9','♠1','♠J','♠Q','♠K'],['♣9','♣1','♣J','♣Q','♣K']]],// streat-flesh end
+      [[['♥A','♦A','♠A','♣A']],[['♥K','♦K','♠K','♣K']],[['♥Q','♦Q','♠Q','♣Q']],[['♥J','♦J','♠J','♣J']],[['♥1','♦1','♠1','♣1']],[['♥9','♦9','♠9','♣9']],[['♥8','♦8','♠8','♣8']],//kare start
+      [['♥7','♦7','♠7','♣7']],[['♥6','♦6','♠6','♣6']],[['♥5','♦5','♠5','♣5']],[['♥4','♦4','♠4','♣4']],[['♥3','♦3','♠3','♣3']],[['♥2','♦2','♠2','♣2']],],//kare end
+      [[['AAA','AAA','AAA','AAA','AAA',]]//full-house
+
+      ],
+      
+      ]  
   }
 }
