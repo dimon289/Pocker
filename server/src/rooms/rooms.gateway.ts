@@ -214,9 +214,9 @@ export class RoomsGateway implements OnGatewayConnection {
       return StepTypeEnum.Check;
     // console.warn('lastStep.steptype === StepTypeEnum.First: ' + (lastStep.steptype === StepTypeEnum.First) + ' Bet === Number(lastStep.bet): '+ (Bet === Number(lastStep.bet)))
     if ((lastStep.steptype === StepTypeEnum.Raise && Bet === lastBet)||
-             (lastStep.steptype === StepTypeEnum.ReRaise&&Bet === lastBet)||
-             (lastStep.steptype === StepTypeEnum.Allin && Bet === lastBet)||
-             (lastStep.steptype === StepTypeEnum.First && Bet === lastBet))
+        (lastStep.steptype === StepTypeEnum.ReRaise&&Bet === lastBet)||
+        (lastStep.steptype === StepTypeEnum.Allin && Bet === lastBet)||
+        (lastStep.steptype === StepTypeEnum.First && Bet === lastBet))
       return StepTypeEnum.Call;
     
     if (Bet > lastBet&&lastStep.steptype === StepTypeEnum.Raise)
@@ -308,7 +308,7 @@ export class RoomsGateway implements OnGatewayConnection {
             player.status = false;
           }
           bet = Math.round(bet*100)/100
-          const steptype: StepTypeEnum = this.stepTypeDefine(Step,currentBet, bet, maxBet);
+          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep,currentBet, bet, maxBet);
 
           if (resolved) return;
           resolved = true;
