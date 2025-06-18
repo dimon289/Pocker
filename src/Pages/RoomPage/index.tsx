@@ -94,6 +94,7 @@ const RoomPage: React.FC = () => {
       setGameStatus('Game Started');
   })
   newSocket.on('yourCards', ({cards})=>{
+    setMessages(prevMessages => [...prevMessages,'Видано карти'])
     setYourCards(cards)
     setPlayersInGame(prevPlayers =>
       prevPlayers.map(p => ({
@@ -112,8 +113,9 @@ const RoomPage: React.FC = () => {
 
   })
   newSocket.on('makeYourStep',({currMaxBet, currMinBet})=>{
+    console.warn(currMinBet, " ", currMaxBet)
     setIsYourTurn(true)
-    setMinbet(currMaxBet)
+    setMaxbet(currMaxBet)
     setMinbet(currMinBet)
   })  
   setSocket(newSocket);
@@ -337,9 +339,11 @@ const RoomPage: React.FC = () => {
                     type="range"
                     min={Number(minBet)}
                     max={Number(maxBet)}
+                    step={0.01}
                     value={Number(myBet)}
                     onChange={(e) => setmyBet(Number(e.target.value))}
                     className="w-64"
+
                   />
                 </div>
               )}
