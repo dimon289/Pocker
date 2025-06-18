@@ -66,7 +66,22 @@ function Home() {
                     <div className="user">
                         <Link to="User">{name}</Link>
                     </div>
-                    <div className="balance">
+                    <div className="balance" onClick={async()=>{
+                            const token = localStorage.getItem("token")
+                            const auth = await axios({
+                                method: "get",
+                                url: `${apiUrl}/api/user/profile`,
+                                headers:{
+                                    'Authorization':`Bearer ${token}`
+                            }})  
+                            await axios({
+                                method:"patch",
+                                url:`${apiUrl}/api/user?email=${auth.data.email}`,
+                                data:{
+                                    "balance": 1000,
+                                }
+                            }).then(()=>dispatch(increaseBalance(100)))
+                    }}>
                         {(balance * 100).toLocaleString("en-US", { style: "currency", currency: "USD" })}
                     </div>
                 </div>
