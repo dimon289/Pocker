@@ -200,24 +200,23 @@ export class RoomsGateway implements OnGatewayConnection {
     this.playersService.updateStatus(playerId, false)
   }
 
-  stepTypeDefine(lastStep: step|null, bet: number, balance: number){
+  stepTypeDefine(lastStep: step|null, currBet:number, Bet: number, balance: number){
     if (!lastStep)
       return StepTypeEnum.First;
-    else if (bet === Number(lastStep.bet))
+    else if (currBet === 0 && lastStep.steptype !== StepTypeEnum.Check)
       return StepTypeEnum.Fold
-    else if (bet === balance)
+    else if (Bet === balance)
       return StepTypeEnum.Allin
-    else if(lastStep.steptype == StepTypeEnum.Check && bet === Number(lastStep!.bet))
+    else if(lastStep.steptype === StepTypeEnum.Check && currBet === 0)
       return StepTypeEnum.Check;
-    else if ((lastStep.steptype === StepTypeEnum.Raise && bet === Number(lastStep!.bet))||
-             (lastStep.steptype === StepTypeEnum.ReRaise&&bet === Number(lastStep!.bet))||
-             (lastStep.steptype === StepTypeEnum.First && bet === Number(lastStep!.bet)))
+    else if ((lastStep.steptype === StepTypeEnum.Raise && Bet === Number(lastStep.bet))||
+             (lastStep.steptype === StepTypeEnum.ReRaise&&Bet === Number(lastStep.bet))||
+             (lastStep.steptype === StepTypeEnum.Allin && Bet === Number(lastStep.bet)))
       return StepTypeEnum.Call;
-    else if ((lastStep.steptype === StepTypeEnum.Check && bet > Number(lastStep!.bet))||
-             (lastStep.steptype === StepTypeEnum.First && bet > Number(lastStep!.bet)))
-      return StepTypeEnum.Raise;
-    else if ((lastStep.steptype === StepTypeEnum.Raise && bet > Number(lastStep!.bet)))
+    else if (Bet > Number(lastStep.bet)&&lastStep.steptype === StepTypeEnum.Raise)
       return StepTypeEnum.ReRaise;
+    else if (Bet > Number(lastStep.bet))
+      return StepTypeEnum.Raise;
 
     return StepTypeEnum.Fold
   }
@@ -291,7 +290,8 @@ export class RoomsGateway implements OnGatewayConnection {
             bet = 0.05;
             player.status = false;
           }
-          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep, bet, Number(maxBet));
+          
+          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep,currentBet, bet, Number(maxBet));
 
           if (resolved) return;
           resolved = true;
@@ -373,7 +373,7 @@ export class RoomsGateway implements OnGatewayConnection {
             bet += Number(prewStep.bet);
           if (bet > maxBet)
             bet = maxBet;
-          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep, bet, Number(maxBet));
+          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep, currentBet, bet, Number(maxBet));
 
           if(!(steptype === StepTypeEnum.Check) && 
              !(steptype === StepTypeEnum.Call)  &&
