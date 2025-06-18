@@ -15,7 +15,7 @@ interface Player {
   status:Boolean;
 }
 type ServerToClientEvents = {
-  userJoined: (data: { usersId: string[], roomUsers:Player[]   }) => void;
+  userJoined: (data: { usersId: string[], roomUsers:Number[]   }) => void;
   Client_disconnected: (data :{userId: string}) => void;
   TableJoined:(data: {player:Player, roomPlayers:Player[]})=>void;
 };
@@ -63,7 +63,7 @@ const RoomPage: React.FC = () => {
 
   newSocket.on('userJoined', ({ usersId, roomUsers }) => {
     console.warn(usersId, roomUsers)
-    setPlayers(roomUsers)
+    
     setUsersId(usersId);
     setMessages(prevMessages => [...prevMessages,`${usersId} joined the room`]);
   });
