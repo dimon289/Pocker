@@ -323,7 +323,6 @@ export class RoomsGateway implements OnGatewayConnection {
         });
       }).then(()=>{
         poker.stepsid.push(lastStep!.id)
-        console.warn(lastStep)
         this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep});
         console.warn(lastStep)
       });
