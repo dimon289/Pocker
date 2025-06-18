@@ -41,7 +41,6 @@ type ClientToServerEvents = {
 
 const RoomPage: React.FC = () => {
   const { roomId } = useParams();
-  // const [users, setUsers] = useState<string[]>([]);
   const [usersId, setUsersId] = useState<string[]>()
   const userId = useSelector((state:RootState) => state.user.userId)
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
@@ -49,7 +48,7 @@ const RoomPage: React.FC = () => {
   const [playersInGame, setPlayersInGame] = useState<PlayerinGame[]>([])
   const [yourCards, setYourCards] = useState<string[]>([]);
   const [communityCards, setCommunityCards] = useState<string[]>([]);
-  // const [potChips, setPotChips] = useState<number>(0);
+  const [potChips, setPotChips] = useState<number>(0);
   const [messages, setMessages] = useState<string[]>([]);
   const [gameStatus, setGameStatus] = useState<string>('Waiting for players...');
   const [minBet, setMinbet] = useState<Number>(0);
@@ -95,11 +94,7 @@ const RoomPage: React.FC = () => {
       setPlayers(roomPlayers)
       setMessages(prevMessages => [...prevMessages,'Game Started'])
       setGameStatus('Game Started');
-  })
-  newSocket.on('yourCards', ({cards})=>{
-    setMessages(prevMessages => [...prevMessages,'Видано карти'])
-    setYourCards(cards)
-    setPlayersInGame(prevPlayers =>
+      setPlayersInGame(prevPlayers =>
       prevPlayers.map(p => ({
         ...p,
         player: {
@@ -108,6 +103,10 @@ const RoomPage: React.FC = () => {
         }
       }))
     );
+  })
+  newSocket.on('yourCards', ({cards})=>{
+    setMessages(prevMessages => [...prevMessages,'Видано карти'])
+    setYourCards(cards)
   })
 
   newSocket.on('playerTurn',({playerId})=>{
@@ -289,8 +288,8 @@ const RoomPage: React.FC = () => {
 
         {/* Pot */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-16 flex flex-col items-center text-white">
-          {/* <div className="text-4xl">♣</div>
-          <div className="text-lg font-semibold">Pot: {potChips.toFixed(2)}</div> */}
+          <div className="text-4xl">♣</div>
+          <div className="text-lg font-semibold">Pot: {potChips.toFixed(2)}</div> 
         </div>
 
         {/* Players */}
