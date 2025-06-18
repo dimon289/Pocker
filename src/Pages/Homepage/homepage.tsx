@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { RootState } from "../../Store";
 import { Link } from "react-router-dom";
-import { changeName, changeAvatar, changeDescription, changeEmail, increaseBalance, ChangeUserId } from "../../Slices/userSlice";
+import { changeName, changeAvatar, changeDescription, changeEmail, ChangeUserId, setBalance } from "../../Slices/userSlice";
 import "./style.css";
 import axios from "axios";
 import { BurgerMenu } from "./burgermenu";
@@ -42,7 +42,7 @@ function Home() {
                         dispatch(changeName(user.data.nickname));
                         dispatch(changeEmail(user.data.email));
                         dispatch(changeDescription(user.data.description));
-                        dispatch(increaseBalance(user.data.mybalance));
+                        dispatch(setBalance(Number(user.data.mybalance)));
                         dispatch(changeAvatar(user.data.avatar));
                     } 
                 }
@@ -78,11 +78,11 @@ function Home() {
                                 method:"patch",
                                 url:`${apiUrl}/api/user?email=${auth.data.email}`,
                                 data:{
-                                    "balance": 1000,
+                                    "mybalance": "100.00",
                                 }
-                            }).then(()=>dispatch(increaseBalance(100)))
+                            }).then(()=>dispatch(setBalance(100)))
                     }}>
-                        {(balance * 100).toLocaleString("en-US", { style: "currency", currency: "USD" })}
+                        {(balance).toLocaleString("en-US", { style: "currency", currency: "USD" })}
                     </div>
                 </div>
             ) : (

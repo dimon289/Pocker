@@ -11,7 +11,7 @@ model balance {
   id          Int     @id @default(autoincrement())
   stepid      Int     @unique
   userid      Int     @unique
-  balancetype Boolean 
+  balancetype Boolean
   bet         Int     @default(0)
   step        step    @relation(fields: [stepid], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users       users   @relation(fields: [userid], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -24,24 +24,24 @@ model chats {
 }
 
 model players {
-  id                               Int      @id @default(autoincrement())
-  userid                           Int      
-  cards                            String[] @db.Char(2)
-  roomid                           Int      
-  status                           Boolean  @default(false)
-  room                             room     @relation(fields: [roomid], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
+  id     Int      @id @default(autoincrement())
+  userid Int
+  cards  String[] @db.Char(2)
+  roomid Int
+  status Boolean  @default(false)
+  room   room     @relation(fields: [roomid], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model poker {
   id        Int      @id @default(autoincrement())
   roomid    Int
   playersid Int[]
-  stepsid   Int[]
   cards     String[] @db.Char(2)
   bank      Int      @default(0)
+  stepsid   Int[]
   room      room     @relation(fields: [roomid], references: [id], onDelete: Cascade, onUpdate: NoAction)
-	@@map("pocker")
+
+  @@map("pocker")
 }
 
 model room {
@@ -51,24 +51,24 @@ model room {
   usersid  Int[]
   status   roomstatus
   players  players[]
-  pockers  poker[] 
+  pockers  poker[]
 }
 
 model step {
-  id                                  Int      @id @default(autoincrement())
-  pockerid                            Int      
-  playerid                            Int      
-  bet                                 Decimal      @default(0)
-  maxbet                              Decimal  @default(0) @db.Decimal(12, 2)
-  steptype                            steptype
-  balance                             balance?
+  id       Int      @id @default(autoincrement())
+  pockerid Int
+  playerid Int
+  bet      Decimal  @default(0)
+  maxbet   Decimal  @default(0) @db.Decimal(12, 2)
+  steptype steptype
+  balance  balance?
 }
 
 model users {
   id          Int      @id @default(autoincrement())
   email       String   @unique
   password    String
-  mybalance   Decimal @default(0) @db.Decimal(10, 2)
+  mybalance   Decimal  @default(0) @db.Decimal(10, 2)
   nickname    String   @unique
   avatar      String?
   description String?
@@ -85,11 +85,11 @@ enum roomstatus {
 }
 
 enum steptype {
-  First
   Fold
   Check
   Call
   Raise
-  ReRaise  
+  ReRaise
   Allin
+  First
 }

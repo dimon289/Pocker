@@ -6,7 +6,6 @@ import { io, Socket } from 'socket.io-client';
 import axios from 'axios';
 
 const apiUrl = import.meta.env.VITE_API_URL;
-
 interface Player {
   id: number;
   userid: number;
@@ -34,6 +33,7 @@ type ServerToClientEvents = {
 type ClientToServerEvents = {
   joinRoom: (data: { roomId: string; userId: string }) => void;
   joinTable: ( userId:number)=>void;
+  myStep: ( currentBet:number)=>void
 };
 
 const RoomPage: React.FC = () => {
@@ -49,14 +49,16 @@ const RoomPage: React.FC = () => {
   // const [potChips, setPotChips] = useState<number>(0);
   const [messages, setMessages] = useState<string[]>([]);
   const [gameStatus, setGameStatus] = useState<string>('Waiting for players...');
-
+  const [minBet, setMinbet] = useState<Number>(0);
+   const [maxBet, setMaxbet] = useState<Number>(0);
+  const [myBet, setmyBet] = useState<Number>(0);
+  const [openRaise, setopenRaise] = useState<boolean>()
   // Чи приєднаний гравець до столу
   const [hasJoinedTable, setHasJoinedTable] = useState<boolean>(false);
   const [currentPlayerId, setCurrentPlayerId] = useState<number | null>(null);
 
   // // Чи зараз ваш хід (можна розширити під логіку з сервера)
-  const isYourTurn = false;
-  // const [isYourTurn, setIsYourTurn] = useState<boolean>(false);
+  const [isYourTurn, setIsYourTurn] = useState<boolean>(false);
 
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   
@@ -103,9 +105,16 @@ const RoomPage: React.FC = () => {
       }))
     );
   })
+
   newSocket.on('playerTurn',({playerId})=>{
       setCurrentPlayerId(playerId);
+      setIsYourTurn(false)
+
   })
+  newSocket.on('makeYourStep',({currMaxBet})=>{
+    setIsYourTurn(true)
+    setMinbet(currMaxBet)
+  })  
   setSocket(newSocket);
   socketRef.current = newSocket;
 
@@ -114,12 +123,24 @@ const RoomPage: React.FC = () => {
     };
   }, [roomId, userId]);
 
+
+
+
+
+
   const handleJoinTable = () => {
     if (socket) {
       socket.emit('joinTable', Number(userId) );
       setMessages(prevMessages => [...prevMessages,'Запит на приєднання до столу надіслано']);
     }
   };
+  const Bet= () => {
+    if (socket) {
+      socket.emit('myStep', Number(myBet) );
+      setMessages(prevMessages => [...prevMessages,'зроблена ставка ' + myBet ]);
+    }
+  };
+
   const getUser = async(userId:number) => {
     const user = await axios({
         method:"Get",
@@ -302,15 +323,27 @@ const RoomPage: React.FC = () => {
         {hasJoinedTable && (
           <div className="flex gap-6">
             <button
-              // onClick={() => handleBet(10)}
+              onClick={() => setopenRaise(!openRaise)}
               disabled={!isYourTurn}
               className={`bg-gradient-to-br from-yellow-400 to-yellow-600 text-black font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
                 ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-yellow-500 hover:to-yellow-700'}`}
             >
-              💰 <span>Bet 10</span>
+              💰 <span>Raise</span>
             </button>
+            {openRaise && (
+                <div className="flex flex-col items-center gap-2">
+                  <input
+                    type="range"
+                    min={Number(minBet)}
+                    max={}
+                    value={Number(myBet)}
+                    onChange={(e) => setmyBet(Number(e.target.value))}
+                    className="w-64"
+                  />
+                </div>
+              )}
             <button
-              // onClick={handleCall}
+              onClick={() => setmyBet(Number(minBet))}
               disabled={!isYourTurn}
               className={`bg-gradient-to-br from-blue-500 to-blue-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
                 ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-blue-600 hover:to-blue-800'}`}
@@ -318,12 +351,19 @@ const RoomPage: React.FC = () => {
               ☎️ <span>Call</span>
             </button>
             <button
-              // onClick={handleFold}
+              onClick={() => setmyBet(0)}
               disabled={!isYourTurn}
               className={`bg-gradient-to-br from-red-500 to-red-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
                 ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-red-600 hover:to-red-800'}`}
             >
               ❌ <span>Fold</span>
+            </button>
+            <button
+                onClick={Bet}
+                disabled={!isYourTurn}
+                className={`bg-gradient-to-br from-green-500 to-green-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
+                  ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-green-600 hover:to-green-800'}`}>
+                🪙 <span>{`Bet ${myBet}`}</span>
             </button>
           </div>
         )}
