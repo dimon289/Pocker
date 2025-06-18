@@ -1,7 +1,7 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket, OnGatewayConnection } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
-import { steptype as StepTypeEnum, step,players,poker, room} from '@prisma/client';
+import { steptype as StepTypeEnum, step,players,poker, room, roomstatus} from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { PlayerService } from '../player/player.service';
 import { UserService } from '../User/user.service';
@@ -68,12 +68,13 @@ export class RoomsGateway implements OnGatewayConnection {
       where: { id: roomId },
       select: { usersid: true },
     });
-    
     let players: players[] | undefined = this.RoomPlayersMap.get(roomId)
-    
-    if(players){
-      players = players.filter((player)=>player.userid!==userId)
-      this.RoomPlayersMap.set(roomId,players)
+
+    if((await this.prisma.room.findUnique({where:{id: roomId}}))?.status !== roomstatus.Playing ){
+      if(players){
+        players = players.filter((player)=>player.userid!==userId)
+        this.RoomPlayersMap.set(roomId,players)
+      }
     }
     const updatedUsers: number[] = room!.usersid.filter((id) => id !== userId);
     await this.prisma.room.update({
@@ -128,16 +129,19 @@ export class RoomsGateway implements OnGatewayConnection {
     if(roomPlayers.length>=2){
       this.server.to(String(roomId)).emit("prepare")
       const timeout = setTimeout(() => {
+        client.on('leaveTable', (client: Socket)=>{
+          this.server.to(String(client.data.roomId)).emit('gameIsStartingIn5Seconds')
+          let roomPlayers = this.RoomPlayersMap.get(client.data.roomId)!
+          roomPlayers = roomPlayers.filter((player)=>player.userid!==userId)
+          this.RoomPlayersMap.set(client.data.roomId, roomPlayers)
+          this.server.to(String(client.data.roomId)).emit('userLeavedTable', {roomPlayers:roomPlayers})
+          clearTimeout(timeout);
+        })
         this.handleGameStart(roomId, roomPlayers)
       }, 5000);
     }
 
-    client.on('leaveTable', (client: Socket)=>{
-      let roomPlayers = this.RoomPlayersMap.get(client.data.roomId)!
-      roomPlayers = roomPlayers.filter((player)=>player.userid!==userId)
-      this.RoomPlayersMap.set(client.data.roomId, roomPlayers)
-      this.server.to(String(client.data.roomId)).emit('userLeavedTable', {roomPlayers:roomPlayers})
-    })
+    
   }
 
   @SubscribeMessage('leaveTable')
