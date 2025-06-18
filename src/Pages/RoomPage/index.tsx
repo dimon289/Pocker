@@ -182,6 +182,7 @@ const RoomPage: React.FC = () => {
       else
         setMessages(prevMessages => [...prevMessages,'ви зробили Fould' ]);
       setIsYourTurn(false)
+      setbalanceCircle(false)
     }
   } 
   useEffect(() => {
