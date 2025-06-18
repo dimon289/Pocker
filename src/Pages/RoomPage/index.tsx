@@ -11,15 +11,11 @@ interface Player {
   userid: number;
   cards: string[];
   roomid: number;
-  status: boolean;
-  name: string;
-  avatar: string;
-  // seat: 'top' | 'left' | 'right' | 'bottom';
 }
 type ServerToClientEvents = {
   userJoined: (data: { usersId: string[] }) => void;
   Client_disconnected: (data :{userId: string}) => void;
-  TableJoined:(data: {userId:string})=>void;
+  TableJoined:(data: {player:Player, roomPlayers:Player[]})=>void;
 };
 
 type ClientToServerEvents = {
@@ -75,8 +71,9 @@ const RoomPage: React.FC = () => {
     console.log(`${userId} left the room`);
   });
   
-  newSocket.on('TableJoined', ({ userId }) => {
-    console.log(`${userId} joined the table`);
+  newSocket.on('TableJoined', ({ player , roomPlayers }) => {
+    setPlayers(roomPlayers)
+    console.log(`${player.userid} joined the table`);
   });
 
   setSocket(newSocket);
@@ -150,11 +147,10 @@ const RoomPage: React.FC = () => {
            return (
             <div key={player.id} className={`${baseClasses} ${positionClasses}`}>
               <img
-                src={player.avatar}
-                alt={player.name}
+
                 className="w-16 h-16 rounded-full border-2 border-white"
               />
-              <div className="text-sm mt-1">{player.name}</div>
+              <div className="text-sm mt-1">{}</div>
               <div className={cardClasses}>
                 {player.cards.map((card, idx) => (
                   <span key={idx}>{card}</span>
