@@ -19,6 +19,7 @@ interface PlayerinGame {
   useravatar : string
   usernickname : string
   positionClasses: string
+  yourStep: boolean
 }
 type ServerToClientEvents = {
   userJoined: (data: { usersId: string[], roomPlayers:Player[]   }) => void;
@@ -26,6 +27,8 @@ type ServerToClientEvents = {
   TableJoined:(data: {player:Player, roomPlayers:Player[]})=>void;
   gameStarted:(data: {roomPlayers:Player[]})=>void;
   yourCards: (data: {cards:string[]})=>void;
+  playerTurn: (data: {playerId:number}) =>void;
+  makeYourStep: (data: {currMaxBet:number}) => void;
 };
 
 type ClientToServerEvents = {
@@ -49,6 +52,7 @@ const RoomPage: React.FC = () => {
 
   // Чи приєднаний гравець до столу
   const [hasJoinedTable, setHasJoinedTable] = useState<boolean>(false);
+  const [currentPlayerId, setCurrentPlayerId] = useState<number | null>(null);
 
   // // Чи зараз ваш хід (можна розширити під логіку з сервера)
   const isYourTurn = false;
@@ -94,10 +98,13 @@ const RoomPage: React.FC = () => {
         ...p,
         player: {
           ...p.player,
-          cards: ["🂠", "🂠"]  // 2 закриті карти для всіх
+          cards: ["🂠", "🂠"] 
         }
       }))
     );
+  })
+  newSocket.on('playerTurn',({playerId})=>{
+      setCurrentPlayerId(playerId);
   })
   setSocket(newSocket);
   socketRef.current = newSocket;
@@ -161,6 +168,7 @@ const RoomPage: React.FC = () => {
             useravatar: avatar,
             usernickname: username,
             positionClasses: positionClasses,
+            yourStep: false
           };
 
           setPlayersInGame(prevPlayers => {
@@ -250,24 +258,25 @@ const RoomPage: React.FC = () => {
         </div>
 
         {/* Players */}
-        {playersInGame &&  playersInGame.map((player)=>{
-
-            return (
-              <div key={player.player.id} className={`absolute flex flex-col items-center ${player.positionClasses}`}>
-                <img
-                  className="w-16 h-16 rounded-full border-2 border-white"
-                  src={player.useravatar}
-                  alt={`Player ${player.usernickname}`}
-                />
-                <div className="text-sm mt-1">{player.usernickname}</div>
-                  <div className={'flex gap-2 text-5xl mt-2'}>
-                      {player.player.cards.map((card, idx) => (
-                        <span key={idx}>{card}</span>
-                      ))}
-                  </div>
+        {playersInGame &&  playersInGame.map(player => {
+          const isCurrent = player.player.userid === currentPlayerId; // або player.player.id залежно від ID
+          return (
+            <div key={player.player.id} className={`absolute flex flex-col items-center ${player.positionClasses}`}>
+              <img
+                className="w-16 h-16 rounded-full border-2 border-white"
+                src={player.useravatar}
+                alt={`Player ${player.usernickname}`}
+              />
+              <div className="text-sm mt-1">
+                {isCurrent ? `♥ ${player.usernickname} ♥` : player.usernickname}
               </div>
-            );
-    
+              <div className={'flex gap-2 text-5xl mt-2'}>
+                {player.player.cards.map((card, idx) => (
+                  <span key={idx}>{getCardUnicode(card)}</span>
+                ))}
+              </div>
+            </div>
+          );
         })}
         {/* Your Cards */}
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2">

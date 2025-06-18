@@ -66,7 +66,9 @@ function Home() {
                     <div className="user">
                         <Link to="User">{name}</Link>
                     </div>
-                    <div className="balance">
+                    <div className="balance" onClick={async()=>{
+                        
+                    }}>
                         {(balance * 100).toLocaleString("en-US", { style: "currency", currency: "USD" })}
                     </div>
                 </div>
