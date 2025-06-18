@@ -204,7 +204,7 @@ export class RoomsGateway implements OnGatewayConnection {
     if (!lastStep)
       return StepTypeEnum.First;
     else if (currBet === 0 && lastStep.steptype !== StepTypeEnum.Check||
-             currBet === 0 && lastStep.steptype !== StepTypeEnum.First)
+             Number(lastStep.bet) === Bet && lastStep.steptype === StepTypeEnum.First)
       return StepTypeEnum.Fold
     else if (Bet === balance)
       return StepTypeEnum.Allin
