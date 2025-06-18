@@ -290,6 +290,7 @@ export class RoomsGateway implements OnGatewayConnection {
         socket.emit('makeYourStep', {currMaxBet: currMaxBet, currMinBet: currMinBet})
         socket.removeAllListeners('myStep');
         socket.on('myStep', async (currentBet: number) => {
+          currentBet = Math.round(currentBet)
           let bet: number = currentBet;
           
           if (prewStep)
@@ -300,7 +301,7 @@ export class RoomsGateway implements OnGatewayConnection {
             bet = 0.05;
             player.status = false;
           }
-          
+          bet = Math.round(bet)
           const steptype: StepTypeEnum = this.stepTypeDefine(lastStep,currentBet, bet, Number(maxBet));
 
           if (resolved) return;
@@ -325,6 +326,7 @@ export class RoomsGateway implements OnGatewayConnection {
       }).then(()=>{
         poker.stepsid.push(lastStep!.id)
         this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep});
+        console.warn(lastStep)
       });
     }
     return lastStep
@@ -333,6 +335,8 @@ export class RoomsGateway implements OnGatewayConnection {
   async balancingCircle(roomId: number, poker: poker, roomPlayers: players[],lastStep: step | null = null){
     for (const player of roomPlayers) {
       if(!player.status) return;// skip if player is loose or fold
+      if((await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id))!.bet === lastStep?.bet)
+        return
 
       const socket = this.UseridSocketMap.get(player.userid)!
       const user = await this.usersService.finByPlayer(player)
@@ -413,6 +417,7 @@ export class RoomsGateway implements OnGatewayConnection {
       }).then(()=>{
         poker.stepsid.push(lastStep!.id)
         this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep});
+        console.warn(lastStep)
       });
     }
     return lastStep
@@ -421,6 +426,7 @@ export class RoomsGateway implements OnGatewayConnection {
   async handlePreflop(roomId: number, poker: poker, roomPlayers: players[]){
     this.server.to(String(roomId)).emit("preFlopStarted", {roomPlayers})
     let lastStep = await this.betCircle(roomId, poker, roomPlayers)
+    console.warn('aboba')
     lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
     this.server.to(String(roomId)).emit('preFlopEND');
     this.handleFlop(roomId, poker, roomPlayers, lastStep)
