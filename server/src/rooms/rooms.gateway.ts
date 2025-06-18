@@ -230,15 +230,20 @@ export class RoomsGateway implements OnGatewayConnection {
       const user = await this.usersService.finByPlayer(player)
       
       const maxBet = Number(user!.mybalance)
-      const prewBet = await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id)
-      let currMaxBet: number  
-      if(prewBet){
-        currMaxBet = maxBet-Number(prewBet.bet)
-        if (currMaxBet <= 0.05) 
-          return;
+      const prewStep = await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id)
+      const biggestBet = (await this.stepService.findBiggestBet(poker.id))
+      let currMaxBet, currMinBet: number
+        
+      if(prewStep){
+        currMaxBet = maxBet-Number(prewStep.bet)
+        currMinBet = (Number(lastStep!.bet) - Number(prewStep!.bet))
       }
       else
-        currMaxBet = maxBet
+      currMaxBet = maxBet
+      if(biggestBet>maxBet)
+        currMinBet = currMaxBet
+
+
       this.server.to(String(roomId)).emit('playerTurn', {playerId: player.id});
 
       await new Promise<void>((resolve) => {
@@ -248,7 +253,7 @@ export class RoomsGateway implements OnGatewayConnection {
           resolved = true;
           socket.removeAllListeners('myStep');
           player.status = false
-          if(!prewBet){
+          if(!prewStep){
             lastStep = await this.stepService.create({
               pockerid: poker.id,
               playerid: player.id,
@@ -261,20 +266,21 @@ export class RoomsGateway implements OnGatewayConnection {
           lastStep = await this.stepService.create({
             pockerid: poker.id,
             playerid: player.id,
-            bet: Number(prewBet!.bet),
+            bet: Number(prewStep!.bet),
             maxbet: maxBet,
             steptype: StepTypeEnum.Fold,
           });}
           resolve(); 
         }, 30000); // 30 сек
         
-        socket.emit('makeYourStep', {currMaxBet: currMaxBet})
+        
+        socket.emit('makeYourStep', {currMaxBet: currMaxBet, currMinBet: currMinBet})
         socket.removeAllListeners('myStep');
         socket.on('myStep', async (currentBet: number) => {
           let bet: number = currentBet;
           
-          if (prewBet)
-            bet += Number(prewBet.bet);
+          if (prewStep)
+            bet += Number(prewStep.bet);
           if (bet > maxBet)
             bet = maxBet;
           if (bet < 0){
@@ -319,15 +325,18 @@ export class RoomsGateway implements OnGatewayConnection {
       const user = await this.usersService.finByPlayer(player)
       
       const maxBet = Number(user!.mybalance)
-      const prewBet = await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id)
-      let currMaxBet: number  
-      if(prewBet){
-        currMaxBet = maxBet-Number(prewBet.bet)
-        if (Number(prewBet.bet) >= await this.stepService.findBiggestBet(poker.id)||currMaxBet === 0)
-          return;
+      const prewStep = await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id)
+      const biggestBet = (await this.stepService.findBiggestBet(poker.id))
+      let currMaxBet, currMinBet: number
+      if(prewStep){
+        currMaxBet = maxBet-Number(prewStep.bet)
+        currMinBet = (Number(lastStep!.bet) - Number(prewStep!.bet))
       }
       else
-        currMaxBet = maxBet
+      currMaxBet = maxBet
+      if(biggestBet>maxBet)
+        currMinBet = currMaxBet
+      
 
       this.server.to(String(roomId)).emit('playerTurn', currMaxBet);
 
@@ -338,40 +347,30 @@ export class RoomsGateway implements OnGatewayConnection {
           resolved = true;
           socket.removeAllListeners('myStep');
           player.status = false
-          if(!prewBet){
-            lastStep = await this.stepService.create({
-              pockerid: poker.id,
-              playerid: player.id,
-              bet: 0.05,
-              maxbet: maxBet,
-              steptype: StepTypeEnum.Fold,
-            });
-            poker.bank += 0.05;
-          }
           lastStep = await this.stepService.create({
             pockerid: poker.id,
             playerid: player.id,
-            bet: Number(prewBet!.bet),
+            bet: Number(prewStep!.bet),
             maxbet: maxBet,
             steptype: StepTypeEnum.Fold,
           });
           resolve(); 
         }, 30000); // 30 sec technical loose 
 
-        socket.emit('makeYourStep', {currMaxBet: currMaxBet})
+        socket.emit('makeYourStep', {currMaxBet: currMaxBet, currMinBet: currMinBet})
         socket.removeAllListeners('myStep');
         socket.on('myStep', async (currentBet: number) => {
           let bet: number = currentBet;
           
-          if (prewBet)
-            bet += Number(prewBet.bet);
+          if (prewStep)
+            bet += Number(prewStep.bet);
           if (bet > maxBet)
             bet = maxBet;
           const steptype: StepTypeEnum = this.stepTypeDefine(lastStep, bet, Number(maxBet));
 
-          if(steptype === StepTypeEnum.Check || 
-             steptype === StepTypeEnum.Call  ||
-             (steptype === StepTypeEnum.Allin&&Number(lastStep!.bet) >= bet)){
+          if(!(steptype === StepTypeEnum.Check) && 
+             !(steptype === StepTypeEnum.Call)  &&
+             !(steptype === StepTypeEnum.Allin&&Number(lastStep!.bet) >= bet)){
             socket.emit('stepError', 'No Raise')
             return;
             }
@@ -384,10 +383,11 @@ export class RoomsGateway implements OnGatewayConnection {
           lastStep = await this.stepService.create({
             pockerid: poker.id,
             playerid: player.id,
-            bet: currentBet,
+            bet: bet,
             maxbet: maxBet,
             steptype: steptype,
           });
+          poker.bank += currentBet;
 
           if (lastStep.steptype === StepTypeEnum.Fold)
             player.status = false; 
