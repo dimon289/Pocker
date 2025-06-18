@@ -293,7 +293,7 @@ export class RoomsGateway implements OnGatewayConnection {
         }, 30000); // 30 сек
         
         
-        socket.emit('makeYourStep', {currMaxBet: currMaxBet, currMinBet: currMinBet})
+        socket.emit('makeYourStep', {currMaxBet: Math.round(currMaxBet*100)/100, currMinBet: Math.round(currMinBet*100)/100})
         socket.removeAllListeners('myStep');
         socket.on('myStep', async (currentBet: number) => {
           currentBet = Math.round(currentBet*100)/100
@@ -380,7 +380,7 @@ export class RoomsGateway implements OnGatewayConnection {
           currMinBet = currMaxBet          
       }
       
-      this.server.to(String(roomId)).emit('playerTurn', currMaxBet);
+      this.server.to(String(roomId)).emit('playerTurn', {currMaxBet: Math.round(currMaxBet*100)/100})
 
       let Step: step
       await new Promise<step>((resolve) => {
@@ -400,7 +400,7 @@ export class RoomsGateway implements OnGatewayConnection {
           resolve(Step); 
         }, 30000); // 30 sec technical loose 
 
-        socket.emit('makeYourStep', {currMaxBet: currMaxBet, currMinBet: currMinBet})
+        socket.emit('makeYourStep', {currMaxBet: Math.round(currMaxBet*100)/100, currMinBet: Math.round(currMinBet*100)/100})
         socket.removeAllListeners('myStep');
         socket.on('myStep', async (balancing: boolean) => {
           currMinBet = Math.round(currMinBet*100)/100
@@ -494,6 +494,11 @@ export class RoomsGateway implements OnGatewayConnection {
   } 
   async handleShowdown(roomId: number, poker: poker, roomPlayers: players[], lastStep){
     this.server.to(String(roomId)).emit('Showdown'); 
-    // const PlayerCombinationMap = new Map<players, >
+    const PlayerCombinationMap = new Map<players, string[]>()
+    roomPlayers.forEach(async (player) => {
+      if((await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id))!.steptype !== StepTypeEnum.Fold){
+
+      }
+    });
   }
 }
