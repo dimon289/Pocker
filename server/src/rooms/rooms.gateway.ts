@@ -383,9 +383,9 @@ export class RoomsGateway implements OnGatewayConnection {
           resolve(); 
         }, 30000); // 30 sec technical loose 
 
-        socket.emit('makeYourStep', {currMaxBet: currMaxBet, currMinBet: currMinBet})
+        socket.emit('willYouBalance', {currMaxBet: currMaxBet, currMinBet: currMinBet})
         socket.removeAllListeners('myStep');
-        socket.on('myStep', async (balancing: boolean) => {
+        socket.on('onmyStep', async (balancing: boolean) => {
           currMinBet = Math.round(currMinBet*100)/100
           let currentBet = prewBet
           let steptype: StepTypeEnum
