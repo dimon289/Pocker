@@ -94,6 +94,14 @@ const RoomPage: React.FC = () => {
       setPlayers(roomPlayers)
       setMessages(prevMessages => [...prevMessages,'Game Started'])
       setGameStatus('Game Started');
+  })
+  newSocket.on('yourCards', ({cards})=>{
+    setMessages(prevMessages => [...prevMessages,'Видано карти'])
+    setYourCards(cards)
+  })
+
+  newSocket.on('playerTurn',({playerId})=>{
+      setCurrentPlayerId(playerId);
       setPlayersInGame(prevPlayers =>
       prevPlayers.map(p => ({
         ...p,
@@ -103,17 +111,6 @@ const RoomPage: React.FC = () => {
         }
       }))
     );
-  })
-  newSocket.on('yourCards', ({cards})=>{
-    setMessages(prevMessages => [...prevMessages,'Видано карти'])
-    setYourCards(cards)
-  })
-
-  newSocket.on('playerTurn',({playerId})=>{
-      console.log(playerId)
-      setCurrentPlayerId(playerId);
-      setIsYourTurn(false)
-
   })
   newSocket.on('makeYourStep',({currMaxBet, currMinBet})=>{
     setIsYourTurn(true)
@@ -152,6 +149,7 @@ const RoomPage: React.FC = () => {
     if (socket) {
       socket.emit('myStep', Number(myBet) );
       setMessages(prevMessages => [...prevMessages,'зроблена ставка ' + myBet ]);
+      setIsYourTurn(false)
     }
   };
 
