@@ -1,7 +1,7 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket, OnGatewayConnection } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
-import { steptype as StepTypeEnum, step,players,poker} from '@prisma/client';
+import { steptype as StepTypeEnum, step,players,poker, room} from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { PlayerService } from '../player/player.service';
 import { UserService } from '../User/user.service';
@@ -58,21 +58,27 @@ export class RoomsGateway implements OnGatewayConnection {
   }
 
   async handleDisconnect(client: Socket) {
-    const userId = client.data.userId;
-    const roomId = client.data.roomId;
+    const userId: number = client.data.userId;
+    const roomId: number = client.data.roomId;
     const room = await this.prisma.room.findUnique({
       where: { id: roomId },
       select: { usersid: true },
     });
     
-    const updatedUsers = room!.usersid.filter((id) => id !== userId);
+    let players: players[] | undefined = this.RoomPlayersMap.get(roomId)
+    
+    if(players){
+      players = players.filter((player)=>player.userid!==userId)
+      this.RoomPlayersMap.set(roomId,players)
+    }
+    const updatedUsers: number[] = room!.usersid.filter((id) => id !== userId);
     await this.prisma.room.update({
       where: {id: roomId},
       data: {
         usersid: updatedUsers
       }
     })
-    this.server.to(String(roomId)).emit("Client_disconnected", {userId: userId});
+    this.server.to(String(roomId)).emit("Client_disconnected", {userId: userId, updatedUsers: updatedUsers, players: players});
   }
 
   async handleReconnect(client: Socket){
