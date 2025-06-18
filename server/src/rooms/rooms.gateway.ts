@@ -201,22 +201,31 @@ export class RoomsGateway implements OnGatewayConnection {
   }
 
   stepTypeDefine(lastStep: step|null, currBet:number, Bet: number, balance: number){
+    console.warn('lastStep.steptype: '+lastStep?.steptype + ' lastStep.bet: ' + lastStep?.bet + ' currBet: '+currBet+' Bet:'+Bet+' balance: '+balance)
     if (!lastStep)
       return StepTypeEnum.First;
-    else if (Bet === balance)
+
+    if (Bet === balance)
       return StepTypeEnum.Allin
-    else if(lastStep.steptype === StepTypeEnum.Check && currBet === 0)
+
+    if(lastStep.steptype === StepTypeEnum.Check && currBet === 0)
       return StepTypeEnum.Check;
-    else if ((lastStep.steptype === StepTypeEnum.Raise && Bet === Number(lastStep.bet))|| 
+
+
+    console.warn('lastStep.steptype === StepTypeEnum.First: ' + (lastStep.steptype === StepTypeEnum.First) + ' Bet === Number(lastStep.bet): '+ (Bet === Number(lastStep.bet)))
+    if ((lastStep.steptype === StepTypeEnum.Raise && Bet === Number(lastStep.bet))||
              (lastStep.steptype === StepTypeEnum.ReRaise&&Bet === Number(lastStep.bet))||
-             (lastStep.steptype === StepTypeEnum.Allin && Bet === Number(lastStep.bet))|| 
+             (lastStep.steptype === StepTypeEnum.Allin && Bet === Number(lastStep.bet))||
              (lastStep.steptype === StepTypeEnum.First && Bet === Number(lastStep.bet)))
       return StepTypeEnum.Call;
-    else if (Bet > Number(lastStep.bet)&&lastStep.steptype === StepTypeEnum.Raise)
+    
+    if (Bet > Number(lastStep.bet)&&lastStep.steptype === StepTypeEnum.Raise)
       return StepTypeEnum.ReRaise;
-    else if (Bet > Number(lastStep.bet))
+
+    if (Bet > Number(lastStep.bet))
       return StepTypeEnum.Raise;
-    else if (currBet === 0 && lastStep.steptype !== StepTypeEnum.Check)
+
+    if (currBet === 0 && lastStep.steptype !== StepTypeEnum.Check)
       return StepTypeEnum.Fold
 
     return StepTypeEnum.Fold
