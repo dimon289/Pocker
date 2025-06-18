@@ -62,15 +62,6 @@ export class RoomsGateway implements OnGatewayConnection {
     this.server.to(wsRoomId).emit('userJoined', {usersId: roomUsers, roomPlayers: playersUsersId})
   }
 
-  async handleTableCreate(roomId: number) {
-    this.pockerService.create({
-      roomid: roomId, 
-      playersid: [], 
-      cards:[],
-      bank: 0,
-    })
-    return (await this.pockerService.findByRoomId(roomId)).id
-  }
 
   async handleDisconnect(client: Socket) {
     const userId: number = client.data.userId;
@@ -187,7 +178,8 @@ export class RoomsGateway implements OnGatewayConnection {
       roomid: roomId,
       playersid: roomPlayers.map(player => player.id),
       cards: [],
-      bank: 0
+      bank: 0,
+      stepsid:[]
     });
     poker.cards = [drawCard(),drawCard(),drawCard(),drawCard(),drawCard()]
 
