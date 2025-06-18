@@ -12,7 +12,7 @@ import { error, table } from 'console';
 import { first } from 'rxjs';
 import e from 'express';
 
-@WebSocketGateway({ namespace: '/rooms', cors: { origin: 'http://142.93.175.150', credentials: true } })
+@WebSocketGateway({ namespace: '/rooms', cors: { origin: 'http://localhost:5173', credentials: true } })
 @Injectable()
 export class RoomsGateway implements OnGatewayConnection {
   @WebSocketServer()
@@ -41,14 +41,10 @@ export class RoomsGateway implements OnGatewayConnection {
     client.data.roomId = roomId;
     client.data.userId = userId;
     this.UseridSocketMap.set(userId, client)
-    const roomUsers:number[] = await this.roomsService.updateRoomUsersById(userId, roomId)
-    
-    let roomPlayers = this.RoomPlayersMap.get(roomId)
-    if(!roomPlayers)
-      roomPlayers = []
+    const roomUsers:number[] = await this.roomsService.updateRoomUsersById(userId, roomId) 
 
     client.join(wsRoomId)
-    this.server.to(wsRoomId).emit('userJoined', {usersId: roomUsers, roomPlayers: roomPlayers})
+    this.server.to(wsRoomId).emit('userJoined', {usersId: roomUsers})
   }
 
   async handleTableCreate(roomId: number) {
@@ -114,12 +110,12 @@ export class RoomsGateway implements OnGatewayConnection {
         client.emit("TableFull")
       else
         roomPlayers.push(player)
-        client.emit("TableJoined", {player:player , roomPlayers:roomPlayers})
+        this.server.to(String(roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
         console.warn(roomPlayers)
     }
     else{
       roomPlayers = [player]
-      client.emit("TableJoined", {player:player , roomPlayers:roomPlayers})
+      this.server.to(String(roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
     }
     this.RoomPlayersMap.set(roomId, [player])
     

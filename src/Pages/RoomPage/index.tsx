@@ -3,6 +3,7 @@ import {  useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import { RootState } from "../../Store";
 import { io, Socket } from 'socket.io-client';
+import axios from 'axios';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -13,8 +14,7 @@ interface Player {
   roomid: number;
 }
 type ServerToClientEvents = {
-  connect: (data: { roomPlayers:Player[] } )=>void
-  userJoined: (data: { usersId: string[] }) => void;
+  userJoined: (data: { usersId: string[], roomUsers:Player[]   }) => void;
   Client_disconnected: (data :{userId: string}) => void;
   TableJoined:(data: {player:Player, roomPlayers:Player[]})=>void;
 };
@@ -38,8 +38,7 @@ const RoomPage: React.FC = () => {
   // const [gameStatus, setGameStatus] = useState<string>('Waiting for players...');
 
   // Чи приєднаний гравець до столу
-  const hasJoinedTable = false;
-  // const [hasJoinedTable, setHasJoinedTable] = useState<boolean>(false);
+  const [hasJoinedTable, setHasJoinedTable] = useState<boolean>(false);
 
   // // Чи зараз ваш хід (можна розширити під логіку з сервера)
   const isYourTurn = false;
@@ -57,12 +56,12 @@ const RoomPage: React.FC = () => {
     }
   });
 
-  newSocket.on('connect', ({ roomPlayers }) => {
-    setPlayers(roomPlayers)
+  newSocket.on('connect', () => {
     console.log('WebSocket connected');
   });
 
-  newSocket.on('userJoined', ({ usersId }) => {
+  newSocket.on('userJoined', ({ usersId, roomUsers }) => {
+    setPlayers(roomUsers)
     setUsersId(usersId);
     console.log(`${usersId} joined the room`);
   });
@@ -75,7 +74,9 @@ const RoomPage: React.FC = () => {
   
   newSocket.on('TableJoined', ({ player , roomPlayers }) => {
     setPlayers(roomPlayers)
+    console.log(roomPlayers)
     console.log(`${player.userid} joined the table`);
+    setHasJoinedTable(true)
   });
 
   setSocket(newSocket);
@@ -92,7 +93,14 @@ const RoomPage: React.FC = () => {
       console.log('Запит на приєднання до столу надіслано');
     }
   };
-
+  const getUser = async(userId:number) => {
+    const user = await axios({
+        method:"Get",
+        url:`${apiUrl}/api/user/id?id=${userId}`,
+    })  
+    
+    return user 
+  }
 
   
 
@@ -120,47 +128,60 @@ const RoomPage: React.FC = () => {
         </div>
 
         {/* Players */}
-        {players.map((player, index) => {
-          const baseClasses = 'absolute flex flex-col items-center';
-          const cardClasses = 'flex gap-2 text-5xl mt-2';
+        {players && players
+          .filter(p => p.userid !== Number(userId)) // прибираємо поточного гравця з відображення
+          .map((player, index) => {
+            
+            const baseClasses = 'absolute flex flex-col items-center';
+            const cardClasses = 'flex gap-2 text-5xl mt-2';
+            
+            let user = getUser(player.userid)
+            console.log(user)
+            let avatar
+            let username
+            const currentPlayerIndex = players.findIndex(p => p.userid === Number(userId));
+            const rotatedIndex = (index - currentPlayerIndex + players.length - 1) % (players.length - 1);
 
-          const currentPlayerIndex = players.findIndex(p => p.userid === Number(userId));
-          const rotatedIndex = (index - currentPlayerIndex + players.length) % players.length;
+            // 5 позицій (без 'bottom')
+            const seatPositions = ['bottom-left', 'top-left', 'top', 'top-right', 'bottom-right'];
+            const seat = seatPositions[rotatedIndex % seatPositions.length];
 
-          const seatPositions = ['bottom', 'left', 'top', 'right'];
-          const seat = seatPositions[rotatedIndex % seatPositions.length];
+            let positionClasses = '';
+            switch (seat) {
+              case 'top':
+                positionClasses = 'top-4 left-1/2 -translate-x-1/2';
+                break;
+              case 'top-left':
+                positionClasses = 'top-10 left-24';
+                break;
+              case 'top-right':
+                positionClasses = 'top-10 right-24';
+                break;
+              case 'bottom-left':
+                positionClasses = 'bottom-16 left-24';
+                break;
+              case 'bottom-right':
+                positionClasses = 'bottom-16 right-24';
+                break;
+            }
 
-          let positionClasses = '';
-          switch (seat) {
-            case 'top':
-              positionClasses = 'top-4 left-1/2 -translate-x-1/2';
-              break;
-            case 'left':
-              positionClasses = 'left-4 top-1/2 -translate-y-1/2';
-              break;
-            case 'right':
-              positionClasses = 'right-4 top-1/2 -translate-y-1/2';
-              break;
-            case 'bottom':
-              positionClasses = 'bottom-20 left-1/2 -translate-x-1/2';
-              break;
-          }
-
-           return (
-            <div key={player.id} className={`${baseClasses} ${positionClasses}`}>
-              <img
-
-                className="w-16 h-16 rounded-full border-2 border-white"
-              />
-              <div className="text-sm mt-1">{}</div>
-              <div className={cardClasses}>
-                {player.cards.map((card, idx) => (
-                  <span key={idx}>{card}</span>
-                ))}
+            return (
+              <div key={player.id} className={`${baseClasses} ${positionClasses}`}>
+                <img
+                  className="w-16 h-16 rounded-full border-2 border-white"
+                  src={avatar}
+                  alt={`Player ${username}`}
+                />
+                <div className="text-sm mt-1">{username}</div>
+                <div className={cardClasses}>
+                  {player.cards.map((card, idx) => (
+                    <span key={idx}>{card}</span>
+                  ))}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        }
         {/* Your Cards */}
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2">
           <div className="flex gap-4 text-6xl">

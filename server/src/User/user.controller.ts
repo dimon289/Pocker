@@ -19,7 +19,10 @@ export class UserController {
   findAll() {
     return this.userService.findAll();
   }
-
+  @Get('id')
+  findId(@Query("id") id: string){
+    return this.userService.findId(id);
+  }
   @Get('email')
   findEmail(@Query("email") email: string){
     return this.userService.findEmail(email);

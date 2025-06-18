@@ -18,7 +18,15 @@ export class UserService {
             throw new Error("Не вдалося отримати користувачів");
         }
     }
-
+    async findId(id:string) {
+        try {
+            const user = await this.prisma.users.findFirst({where: { id:Number(id) }});
+            return user || false;
+        } catch (error) {
+            console.error("Помилка при пошуку name:", error);
+            throw new Error("Не вдалося отримати користувача");
+        }
+    }
     async findName(name: string){
         try {
             const user = await this.prisma.users.findFirst({where: { nickname: name }});
@@ -28,6 +36,7 @@ export class UserService {
             throw new Error("Не вдалося отримати користувача");
         }
     }
+
 
     async findEmail(email: string) {
         try {
