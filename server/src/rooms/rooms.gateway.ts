@@ -508,10 +508,10 @@ export class RoomsGateway implements OnGatewayConnection {
       for(let combination of fleshRoyale){
         const isMatch = combination.every(card => cards.includes(card));
         if(isMatch) 
-          return 100
+          return {combination: 'fleshRoyale', value: ''}
       }
       i-=1
-      const streatFlash: string[][][] =
+      const streetFlash: string[][][] =
         [[['♥9','♥1','♥J','♥Q','♥K'],['♦9','♦1','♦J','♦Q','♦K'],['♠9','♠1','♠J','♠Q','♠K'],['♣9','♣1','♣J','♣Q','♣K']],
          [['♥8','♥9','♥1','♥J','♥Q'],['♦8','♦9','♦1','♦J','♦Q'],['♠8','♠9','♠1','♠J','♠Q'],['♣8','♣9','♣1','♣J','♣Q']],
          [['♥7','♥8','♥9','♥1','♥J'],['♦7','♦8','♦9','♦1','♦J'],['♠7','♠8','♠9','♠1','♠J'],['♣7','♣8','♣9','♣1','♣J']],
@@ -523,40 +523,85 @@ export class RoomsGateway implements OnGatewayConnection {
          [['♥2','♥3','♥4','♥5','♥6'],['♦2','♦3','♦4','♦5','♦6'],['♠2','♠3','♠4','♠5','♠6'],['♣2','♣3','♣4','♣5','♣6']],
          [['♥A','♥2','♥3','♥4','♥5'],['♦A','♦2','♦3','♦4','♦5'],['♠A','♠2','♠3','♠4','♠5'],['♣A','♣2','♣3','♣4','♣5']]]
 
-      for(let group of streatFlash){
+      for(let group of streetFlash){
         for(let combination of group){
           const isMatch = combination.every(card => cards.includes(card));
           if(isMatch) 
-            return i
+            return {combination: 'streetFlash', value: combination}
         }
         i-=1
       }
 
       let kare = 0
       let count = 0
-      let rank:string
-      let ranks: string[] = []
+      let rank:string = '100'
+      let ranks:any = []
       cards.map(card => {
         if(!ranks.includes(card[1])){
+          let cardRank = ''
+          if(card[1] === '1')
+            cardRank = '10'
+          else if(card[1]==='J')
+            cardRank = '11'
+          else if(card[1]==='Q')
+            cardRank = '12'
+          else if(card[1]==='K')
+            cardRank = '13'
+          else if(card[1]==='A')
+            cardRank = '14'
+          else cardRank = card[1]
           ranks.push(card[1])
           count = 1
           cards.map(unicRank =>{
             if(card[1] === unicRank[1])
               count += 1
           })
+          count-=1
           if(count>kare){
             kare = count
-            rank = card[1]
+            rank = cardRank
           }
         }
       });
-      ranks = []
-      let fullHouse = 0
+      
+
       if(kare = 4){
-        return i
-      }else{
-        i-=1
-        
+        return {combination: 'kare', value: rank}
+      }
+      ranks = []
+      const rankMap = new Map<number, number>();
+
+      for (let card of cards) {
+        let rankChar = card.slice(1); // наприклад '♥Q' → 'Q'
+        let rank = 0;
+        if (rankChar === '1') rank = 10;
+        else if (rankChar === 'J') rank = 11;
+        else if (rankChar === 'Q') rank = 12;
+        else if (rankChar === 'K') rank = 13;
+        else if (rankChar === 'A') rank = 14;
+        else rank = Number(rankChar);
+
+        rankMap.set(rank, (rankMap.get(rank) || 0) + 1);
+      }
+
+      let three = 0;
+      let pair = 0;
+
+      for (let [rank, count] of [...rankMap.entries()].sort((a, b) => b[0] - a[0])) {
+        if (count >= 3 && three === 0) {
+          three = rank;
+          count -= 3;
+        }
+        if (count >= 2 && pair === 0) {
+          pair = rank;
+        }
+      }
+
+      if (three && pair) {
+        return {
+          combination: 'fullHouse',
+          value: three * 15 + pair // значення для порівняння фулл-хаусів
+        };
       }
         
 
