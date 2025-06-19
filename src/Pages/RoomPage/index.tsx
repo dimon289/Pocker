@@ -41,7 +41,7 @@ type ServerToClientEvents = {
   RiverStarted:(data: {cards:string[]})=>void;
   willYouBalance: (data:{currMaxBet:number, currMinBet: number }) => void;
   stepDone: (data:{lastStep: Step, bank:number})=> void;
-  Showdown: (data: {players:Player[], playerId:number})=>void;
+  Showdown: (data: {roomPlayers:Player[], winner:Player})=>void;
 };
 
 type ClientToServerEvents = {
@@ -148,6 +148,10 @@ const RoomPage: React.FC = () => {
   })
   newSocket.on('stepDone', ({bank})=>{
     setPotChips(bank)
+  })
+  newSocket.on("Showdown", ({winner, roomPlayers })=>{
+    setWinner(winner.id)
+    setPlayers(roomPlayers)
   })
   setSocket(newSocket);
   socketRef.current = newSocket;

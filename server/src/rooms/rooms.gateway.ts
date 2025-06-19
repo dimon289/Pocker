@@ -647,7 +647,21 @@ export class RoomsGateway implements OnGatewayConnection {
       // Знайти flush серед мастей
       flush = flushCounter.find(flushCards => flushCards.length >= 5) ?? [];
       if (flush.length >= 5){
+        flush.map((card)=> {
+        if(card[1] === 'A')
+          ranks.push(14)
+        else if(card[1] === 'K')
+          ranks.push(13)
+        else if(card[1] === 'Q')
+          ranks.push(12)
+        else if(card[1] === 'J')
+          ranks.push(11)
+        else if(card[1] === '1')
+          ranks.push(10)
+        else ranks.push(Number(card[1]))
+      })
         const sumRanks = ranks.reduce((a, b) => a + b, 0);
+        return {combination:'flush',value: sumRanks }
       }
   
     
@@ -733,7 +747,7 @@ export class RoomsGateway implements OnGatewayConnection {
         value: rankMap.entries()[0] // значення для порівняння фулл-хаусів
       };
     }
-    let winner: players
+    let winner: players = roomPlayers[0]
 
     roomPlayers.forEach(async (player) => {
       if((await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id))!.steptype !== StepTypeEnum.Fold){
@@ -742,7 +756,7 @@ export class RoomsGateway implements OnGatewayConnection {
         PlayerCombinationMap.set(player,combination)
       }
     });
-
+    let fleshRoyales: players[] = []
     let streetFlushes: players[] = []
     let kares: players[] = []
     let fullHouses: players[] = []
@@ -750,11 +764,11 @@ export class RoomsGateway implements OnGatewayConnection {
     let streets: players[] = []
     let sets: players[] = []
     let twoPairs: players[] = []
-    let pair: players[] = []
+    let pairs: players[] = []
     let highestCard: players[] = []
     PlayerCombinationMap.entries()[0].map(key => {
       if(PlayerCombinationMap.get(key)?.combination == 'fleshRoyale'){
-        winner = key
+        fleshRoyales.push(key)
         return
       }
       if(PlayerCombinationMap.get(key)?.combination == 'streetFlush'){
@@ -766,21 +780,152 @@ export class RoomsGateway implements OnGatewayConnection {
       if(PlayerCombinationMap.get(key)?.combination == 'fullHouse'){
         fullHouses.push(key)
       }
-      if(PlayerCombinationMap.get(key)?.combination == 'streetFlush'){
-        streetFlushes.push(key)
+      if(PlayerCombinationMap.get(key)?.combination == 'flush'){
+        flushes.push(key)
       }
-      if(PlayerCombinationMap.get(key)?.combination == 'streetFlush'){
-        streetFlushes.push(key)
+      if(PlayerCombinationMap.get(key)?.combination == 'street'){
+        streets.push(key)
       }
-      if(PlayerCombinationMap.get(key)?.combination == 'streetFlush'){
-        streetFlushes.push(key)
+      if(PlayerCombinationMap.get(key)?.combination == 'set'){
+        sets.push(key)
       }
-      if(PlayerCombinationMap.get(key)?.combination == 'streetFlush'){
-        streetFlushes.push(key)
+      if(PlayerCombinationMap.get(key)?.combination == 'twoPairs'){
+        twoPairs.push(key)
+      }
+      if(PlayerCombinationMap.get(key)?.combination == 'pair'){
+        pairs.push(key)
+      }
+      if(PlayerCombinationMap.get(key)?.combination == 'HighestCard'){
+        highestCard.push(key)
       }
     });
+    if(fleshRoyales.length>=1){
+      winner = fleshRoyales[0]
+    }else if(streetFlushes.length>=1){
+      winner=streetFlushes[0]
+       if(streetFlushes.length>1){
+        streetFlushes.map(player=>{
+          if (player!=winner) {
+            if(PlayerCombinationMap.get(player)!.value>PlayerCombinationMap.get(winner)!.value)
+              winner = player
+          }
+          
+        })
+      }
+    }else if(kares.length>=1){
+      winner=kares[0]
+       if(kares.length>1){
+        kares.map(player=>{
+          if (player!=winner) {
+            if(PlayerCombinationMap.get(player)!.value>PlayerCombinationMap.get(winner)!.value)
+              winner = player
+          }
+          
+        })
+      }
+    }else if(fullHouses.length>=1){
+      winner=fullHouses[0]
+       if(fullHouses.length>1){
+        fullHouses.map(player=>{
+          if (player!=winner) {
+            if(PlayerCombinationMap.get(player)!.value>PlayerCombinationMap.get(winner)!.value)
+              winner = player
+          }
+          
+        })
+      }
+    }else if(fullHouses.length>=1){
+      winner=fullHouses[0]
+       if(fullHouses.length>1){
+        fullHouses.map(player=>{
+          if (player!=winner) {
+            if(PlayerCombinationMap.get(player)!.value>PlayerCombinationMap.get(winner)!.value)
+              winner = player
+          }
+          
+        })
+      }
+    }else if(flushes.length>=1){
+      winner=flushes[0]
+       if(flushes.length>1){
+        flushes.map(player=>{
+          if (player!=winner) {
+            if(PlayerCombinationMap.get(player)!.value>PlayerCombinationMap.get(winner)!.value)
+              winner = player
+          }
+          
+        })
+      }
+    }else if(streets.length>=1){
+      winner=streets[0]
+       if(streets.length>1){
+        streets.map(player=>{
+          if (player!=winner) {
+            if(PlayerCombinationMap.get(player)!.value>PlayerCombinationMap.get(winner)!.value)
+              winner = player
+          }
+          
+        })
+      }
+    }else if(sets.length>=1){
+      winner=sets[0]
+       if(sets.length>1){
+        sets.map(player=>{
+          if (player!=winner) {
+            if(PlayerCombinationMap.get(player)!.value>PlayerCombinationMap.get(winner)!.value)
+              winner = player
+          }
+          
+        })
+      }
+    }else if(fullHouses.length>=1){
+      winner=fullHouses[0]
+       if(fullHouses.length>1){
+        fullHouses.map(player=>{
+          if (player!=winner) {
+            if(PlayerCombinationMap.get(player)!.value>PlayerCombinationMap.get(winner)!.value)
+              winner = player
+          }
+          
+        })
+      }
+    }else if(twoPairs.length>=1){
+      winner=twoPairs[0]
+       if(twoPairs.length>1){
+        twoPairs.map(player=>{
+          if (player!=winner) {
+            if(PlayerCombinationMap.get(player)!.value>PlayerCombinationMap.get(winner)!.value)
+              winner = player
+          }
+          
+        })
+      }
+    }else if(pairs.length>=1){
+      winner=pairs[0]
+       if(pairs.length>1){
+        pairs.map(player=>{
+          if (player!=winner) {
+            if(PlayerCombinationMap.get(player)!.value>PlayerCombinationMap.get(winner)!.value)
+              winner = player
+          }
+          
+        })
+      }
+    }else if(highestCard.length>=1){
+      winner=highestCard[0]
+       if(highestCard.length>1){
+        highestCard.map(player=>{
+          if (player!=winner) {
+            if(PlayerCombinationMap.get(player)!.value>PlayerCombinationMap.get(winner)!.value)
+              winner = player
+          }
+          
+        })
+      }
+    }
 
 
-    this.server.to(String(roomId)).emit('Showdown'); 
+
+    this.server.to(String(roomId)).emit('Showdown',{winner: winner, roomPlayers: roomPlayers}); 
   }
 }
