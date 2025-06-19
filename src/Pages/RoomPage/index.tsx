@@ -41,6 +41,7 @@ type ServerToClientEvents = {
   RiverStarted:(data: {cards:string[]})=>void;
   willYouBalance: (data:{currMaxBet:number, currMinBet: number }) => void;
   stepDone: (data:{lastStep: Step, bank:number})=> void;
+  Showdown: (data: {players:Player[], playerId:number})=>void;
 };
 
 type ClientToServerEvents = {
@@ -67,6 +68,7 @@ const RoomPage: React.FC = () => {
   const [myBet, setmyBet] = useState<Number>(0);
   const [openRaise, setopenRaise] = useState<boolean>()
   const [balanceCircle,setbalanceCircle ] = useState<boolean>(false)
+  const [winner, setWinner] = useState<number>();
   // Чи приєднаний гравець до столу
   const [hasJoinedTable, setHasJoinedTable] = useState<boolean>(false);
   const [currentPlayerId, setCurrentPlayerId] = useState<number | null>(null);
@@ -325,6 +327,7 @@ const RoomPage: React.FC = () => {
         {playersInGame && playersInGame.map(player => {
         const isCurrent = player.player.id === currentPlayerId;
         const isInactive = player.player.status === false;
+        const isWinner = player.player.id === winner; // Перевірка на переможця
 
         return (
           <div
@@ -335,22 +338,22 @@ const RoomPage: React.FC = () => {
               ${isInactive ? 'opacity-40 grayscale' : ''}`}
           >
             <img
-            className={`w-12 h-12 rounded-full border-2 
-              ${isCurrent ? 'border-green-400 ring-4 ring-green-300 animate-pulse' : 'border-white'} 
-              ${isInactive ? 'grayscale opacity-60' : ''}`}
-          />
+              className={`w-12 h-12 rounded-full border-2 
+                ${isCurrent ? 'border-green-400 ring-4 ring-green-300 animate-pulse' : 'border-white'} 
+                ${isInactive ? 'grayscale opacity-60' : ''}`}
+            />
 
-          <div
-            className={`mt-1 px-2 py-1 rounded-md ${
-              isCurrent
-                ? 'text-yellow-400 font-extrabold text-base animate-pulse'
-                : 'text-white text-xs'
-            } ${isInactive ? 'line-through text-red-300' : ''}`}
-          >
-            {player.usernickname}
-          </div>
+            <div
+              className={`mt-1 px-2 py-1 rounded-md ${
+                isCurrent
+                  ? 'text-yellow-400 font-extrabold text-base animate-pulse'
+                  : 'text-white text-xs'
+              } ${isInactive ? 'line-through text-red-300' : ''}`}
+            >
+              {player.usernickname}
+            </div>
 
-          <div className={'flex gap-1 text-3xl mt-1'}>
+            <div className={'flex gap-1 text-3xl mt-1'}>
               {player.player.cards.map((card, idx) => (
                 <span key={idx} className={`${isInactive ? 'opacity-30' : ''}`}>
                   {getCardUnicode(card)}
@@ -358,12 +361,16 @@ const RoomPage: React.FC = () => {
               ))}
             </div>
 
+            {isWinner && (
+              <div className="text-green-400 font-semibold mt-1 text-xs">🏆 Переможець</div>
+            )}
+
             {isInactive && (
               <div className="text-red-400 text-xs mt-1 italic">Вийшов</div>
             )}
           </div>
         );
-          })}
+      })}
 
         {/* Your Cards */}
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2">

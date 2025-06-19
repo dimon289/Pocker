@@ -502,7 +502,7 @@ export class RoomsGateway implements OnGatewayConnection {
     const PlayerCombinationMap = new Map<number, string[]>()
 
     function handDefine(cards:string[]){
-
+      const cardOrder = ['2', '3', '4', '5', '6', '7', '8', '9', '1', 'j', 'q', 'k', 'a'];
       const fleshRoyale: string[][] = [['♥A','♥K','♥Q','♥J','♥1'],['♦A','♦K','♦Q','♦J','♦1'],['♠A','♠K','♠Q','♠J','♠1'],['♣A','♣K','♣Q','♣J','♣1']]
       let i = 100
       for(let combination of fleshRoyale){
@@ -566,25 +566,39 @@ export class RoomsGateway implements OnGatewayConnection {
 
 
 
-      let flash = 0
-      count = 0
-      let suits: string[] = []
-      cards.map(card => {
-        if(!ranks.includes(card[0])){
-          suits.push(card[0])
-          count = 1
-          cards.map(unicSuit =>{
-            if(card[0] === unicSuit[0])
-              count += 1
-          })
-          if(count>kare)
-            flash = count
+      let flush = ""
+      // ♥ ♦ ♠ ♣
+      let flushCounter:  string[][] = [[], [], [], []]; // індекси: 0 - ♥, 1 - ♦, 2 - ♠, 3 - ♣
+
+      cards.forEach((card) => {
+        const suit = card[0]; // перший символ — це масть
+
+        if (suit === '♥') {
+          flushCounter[0].push(card);
+        } else if (suit === '♦') {
+          flushCounter[1].push(card);
+        } else if (suit === '♠') {
+          flushCounter[2].push(card);
+        } else if (suit === '♣') {
+          flushCounter[3].push(card);
         }
       });
 
-      if(flash >= 5)
-        return i
-      i-=1
+      flushCounter = flushCounter.map(flushCards =>
+        flushCards.slice().sort((a, b) => {
+          const rankA = a.slice(1).toLowerCase();
+          const rankB = b.slice(1).toLowerCase();
+          return cardOrder.indexOf(rankA) - cardOrder.indexOf(rankB);
+        })
+      );
+      for(let flushOne of flushCounter){
+        if(flushOne.length >= 5){
+          flush = flushOne[flushOne.length - 1]
+        }
+      }
+      console.log(flushCounter)
+
+
       const street: string[][][] =
         [[['A','1','J','Q','K']],
          [['9','1','J','Q','K']],
@@ -597,19 +611,6 @@ export class RoomsGateway implements OnGatewayConnection {
          [['3','4','5','6','7']],
          [['2','3','4','5','6']],
          [['A','2','3','4','5']]]
-      
-
-
-  
-
-
-
-
-
-      
-
-
-
 
     }
     
