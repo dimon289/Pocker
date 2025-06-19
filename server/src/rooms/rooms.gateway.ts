@@ -550,6 +550,7 @@ export class RoomsGateway implements OnGatewayConnection {
           }
         }
       });
+      ranks = []
       let fullHouse = 0
       if(kare = 4){
         return i
