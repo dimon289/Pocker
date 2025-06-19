@@ -40,7 +40,7 @@ type ServerToClientEvents = {
   TurnStarted: (data: {cards:string[]})=>void;
   RiverStarted:(data: {cards:string[]})=>void;
   willYouBalance: (data:{currMaxBet:number, currMinBet: number }) => void;
-  stepDone: (data:{lastStep: Step})=> void;
+  stepDone: (data:{lastStep: Step, bank:number})=> void;
 };
 
 type ClientToServerEvents = {
@@ -125,8 +125,6 @@ const RoomPage: React.FC = () => {
     );
   })
   newSocket.on('makeYourStep',({currMaxBet, currMinBet})=>{
-    console.log("DO IT")
-    setPotChips(0)
     setIsYourTurn(true)
     setMaxbet(currMaxBet)
     setMinbet(currMinBet)
@@ -145,6 +143,9 @@ const RoomPage: React.FC = () => {
     setMinbet(currMinBet)
     setbalanceCircle(true)
     setIsYourTurn(true)
+  })
+  newSocket.on('stepDone', ({bank})=>{
+    setPotChips(bank)
   })
   setSocket(newSocket);
   socketRef.current = newSocket;
