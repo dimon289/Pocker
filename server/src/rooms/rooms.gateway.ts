@@ -642,7 +642,7 @@ export class RoomsGateway implements OnGatewayConnection {
          [['3','4','5','6','7']],
          [['2','3','4','5','6']],
          [['A','2','3','4','5']]]
-         
+
       for(let group of street){
         for(let combination of group){
           const isMatch = combination.every(card => cards.includes(card));
@@ -652,18 +652,65 @@ export class RoomsGateway implements OnGatewayConnection {
         i-=1
       }
       
-
-  
-
-
-
-
-
+      if (three){
+        return {
+          combination: 'set',
+          value: three // значення для порівняння фулл-хаусів
+        };
+      }
+      function findTwoPairs(cards: string[]) {
+        const rankMap = new Map<number, number>();
       
+        for (let card of cards) {
+          let rankChar = card.slice(1);
+          let rank = 0;
+          if (rankChar === '1') rank = 10;
+          else if (rankChar === 'J') rank = 11;
+          else if (rankChar === 'Q') rank = 12;
+          else if (rankChar === 'K') rank = 13;
+          else if (rankChar === 'A') rank = 14;
+          else rank = Number(rankChar);
+      
+          rankMap.set(rank, (rankMap.get(rank) || 0) + 1);
+        }
+      
+        const pairs: number[] = [];
+      
+        // Збираємо значення рангів, які мають 2 або більше карт
+        for (let [rank, count] of [...rankMap.entries()].sort((a, b) => b[0] - a[0])) {
+          if (count >= 2) {
+            pairs.push(rank);
+            if (pairs.length === 2) break; // тільки 2 пари нас цікавлять
+          }
+        }
+      
+        if (pairs.length === 2) {
+          // Для порівняння двох пар: старша пара * 15^2 + молодша пара * 15
+          return {
+            combination: 'twoPairs',
+            value: pairs[0] * 15 * 15 + pairs[1] * 15,
+          };
+        }
+      
+        return null;
+      }
 
+      let isTwoPairs = findTwoPairs(cards)
+      if(isTwoPairs){
+        return isTwoPairs
+      }
 
+      if (pair){
+        return {
+          combination: 'pair',
+          value: pair // значення для порівняння фулл-хаусів
+        };
+      }
 
-
+      return {
+        combination: 'HighestCard',
+        value: rankMap.entries()[0] // значення для порівняння фулл-хаусів
+      };
     }
     
     roomPlayers.forEach(async (player) => {
