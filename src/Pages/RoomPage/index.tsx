@@ -20,6 +20,14 @@ interface PlayerinGame {
   positionClasses: string
   yourStep: boolean
 }
+interface Step{
+    id: number;
+    pockerid: number;
+    playerid: number;
+    bet: number;
+    maxbet: number;
+    steptype: string;
+}
 type ServerToClientEvents = {
   userJoined: (data: { usersId: string[], roomPlayers:Player[]   }) => void;
   Client_disconnected: (data :{userId: string}) => void;
@@ -32,6 +40,7 @@ type ServerToClientEvents = {
   TurnStarted: (data: {cards:string[]})=>void;
   RiverStarted:(data: {cards:string[]})=>void;
   willYouBalance: (data:{currMaxBet:number, currMinBet: number }) => void;
+  stepDone: (data:{lastStep: Step})=> void;
 };
 
 type ClientToServerEvents = {
