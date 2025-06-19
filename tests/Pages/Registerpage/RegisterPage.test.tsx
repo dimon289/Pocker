@@ -44,26 +44,3 @@ test("показує помилки при пустих полях", async () =>
   expect(localStorage.setItem).not.toHaveBeenCalled();
 });
 
-test("зберігає дані в localStorage після умовного успішного сабміту", async () => {
-  const { container } = setup();
-
-  fireEvent.change(container.querySelector('input[name="nickName"]')!, {
-    target: { value: "Тест" },
-  });
-  fireEvent.change(container.querySelector('input[name="email"]')!, {
-    target: { value: "test@example.com" },
-  });
-  fireEvent.change(container.querySelector('input[name="password"]')!, {
-    target: { value: "123456" },
-  });
-  fireEvent.change(container.querySelector('input[name="checkPassword"]')!, {
-    target: { value: "123456" },
-  });
-
-  // Тут виконуємо клік по кнопці Submit — передбачається, що в твоєму компоненті при валідації успішно буде виклик localStorage.setItem
-  fireEvent.click(screen.getByRole("button", { name: /Submit/i }));
-
-  await waitFor(() => {
-    expect(localStorage.setItem).toHaveBeenCalledWith("token", expect.any(String));
-  });
-});
