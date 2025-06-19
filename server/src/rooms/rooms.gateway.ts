@@ -445,7 +445,7 @@ export class RoomsGateway implements OnGatewayConnection {
             lastStep = Step
         }else
           lastStep = Step
-        this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep: Step});
+        this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep: Step, bank: poker.bank});
         console.warn(Step)
       });
     }
@@ -494,11 +494,14 @@ export class RoomsGateway implements OnGatewayConnection {
   } 
   async handleShowdown(roomId: number, poker: poker, roomPlayers: players[], lastStep){
     this.server.to(String(roomId)).emit('Showdown'); 
-    const PlayerCombinationMap = new Map<players, string[]>()
+    const PlayerCombinationMap = new Map<number, string[]>()
+    
     roomPlayers.forEach(async (player) => {
       if((await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id))!.steptype !== StepTypeEnum.Fold){
-
+        let cards = poker.cards.concat(player.cards) 
+        PlayerCombinationMap.set(player.id,cards)
       }
     });
+
   }
 }
