@@ -20,6 +20,14 @@ interface PlayerinGame {
   positionClasses: string
   yourStep: boolean
 }
+interface Step{
+    id: number;
+    pockerid: number;
+    playerid: number;
+    bet: number;
+    maxbet: number;
+    steptype: string;
+}
 type ServerToClientEvents = {
   userJoined: (data: { usersId: string[], roomPlayers:Player[]   }) => void;
   Client_disconnected: (data :{userId: string}) => void;
@@ -31,13 +39,15 @@ type ServerToClientEvents = {
   FlopStarted: (data: {cards:string[]})=>void;
   TurnStarted: (data: {cards:string[]})=>void;
   RiverStarted:(data: {cards:string[]})=>void;
-
+  willYouBalance: (data:{currMaxBet:number, currMinBet: number }) => void;
+  stepDone: (data:{lastStep: Step, bank:number})=> void;
 };
 
 type ClientToServerEvents = {
   joinRoom: (data: { roomId: string; userId: string }) => void;
   joinTable: ( userId:number)=>void;
-  myStep: ( currentBet:number)=>void
+  myStep: ( currentBet:number)=>void;
+  onmyStep: ( balancing: boolean)=>void;
 };
 
 const RoomPage: React.FC = () => {
@@ -53,9 +63,10 @@ const RoomPage: React.FC = () => {
   const [messages, setMessages] = useState<string[]>([]);
   const [gameStatus, setGameStatus] = useState<string>('Waiting for players...');
   const [minBet, setMinbet] = useState<Number>(0);
-   const [maxBet, setMaxbet] = useState<Number>(0);
+  const [maxBet, setMaxbet] = useState<Number>(0);
   const [myBet, setmyBet] = useState<Number>(0);
   const [openRaise, setopenRaise] = useState<boolean>()
+  const [balanceCircle,setbalanceCircle ] = useState<boolean>(false)
   // Чи приєднаний гравець до столу
   const [hasJoinedTable, setHasJoinedTable] = useState<boolean>(false);
   const [currentPlayerId, setCurrentPlayerId] = useState<number | null>(null);
@@ -114,7 +125,6 @@ const RoomPage: React.FC = () => {
     );
   })
   newSocket.on('makeYourStep',({currMaxBet, currMinBet})=>{
-    setPotChips(0)
     setIsYourTurn(true)
     setMaxbet(currMaxBet)
     setMinbet(currMinBet)
@@ -127,6 +137,15 @@ const RoomPage: React.FC = () => {
   })
   newSocket.on('RiverStarted', ({cards})=>{
     setCommunityCards(prevCards => [...prevCards, ...cards])
+  })
+  newSocket.on('willYouBalance', ({currMaxBet, currMinBet})=>{
+    setMaxbet(currMaxBet)
+    setMinbet(currMinBet)
+    setbalanceCircle(true)
+    setIsYourTurn(true)
+  })
+  newSocket.on('stepDone', ({bank})=>{
+    setPotChips(bank)
   })
   setSocket(newSocket);
   socketRef.current = newSocket;
@@ -163,6 +182,19 @@ const RoomPage: React.FC = () => {
     
     return user 
   }
+  const onMyBet = async(balancing:boolean, bet:Number)=>{
+    if (socket) {
+      socket.emit('onmyStep', balancing );
+      if (bet !== 0){
+        setMessages(prevMessages => [...prevMessages,'зроблена ставка ' + bet ]);
+        
+      }
+      else
+        setMessages(prevMessages => [...prevMessages,'ви зробили Fould' ]);
+      setIsYourTurn(false)
+      setbalanceCircle(false)
+    }
+  } 
   useEffect(() => {
     const updatePlayersInGame = async () => {
       const seatPositions = ['bottom-left', 'top-left', 'top', 'top-right', 'bottom-right', 'bottom'];
@@ -356,51 +388,96 @@ const RoomPage: React.FC = () => {
 
         {hasJoinedTable && (
           <div className="flex gap-6">
-            <button
-              onClick={() => setopenRaise(!openRaise)}
-              disabled={!isYourTurn}
-              className={`bg-gradient-to-br from-yellow-400 to-yellow-600 text-black font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
-                ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-yellow-500 hover:to-yellow-700'}`}
-            >
-              💰 <span>Raise</span>
-            </button>
-            {openRaise && (
-                <div className="flex flex-col items-center gap-2">
-                  <input
-                    type="range"
-                    min={Number(minBet)}
-                    max={Number(maxBet)}
-                    step={0.01}
-                    value={Number(myBet)}
-                    onChange={(e) => setmyBet(Number(e.target.value))}
-                    className="w-64"
 
-                  />
-                </div>
-              )}
-            <button
-              onClick={() => setmyBet(Number(minBet))}
-              disabled={!isYourTurn}
-              className={`bg-gradient-to-br from-blue-500 to-blue-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
-                ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-blue-600 hover:to-blue-800'}`}
-            >
-              ☎️ <span>Call</span>
-            </button>
-            <button
-              onClick={() => setmyBet(0)}
-              disabled={!isYourTurn}
-              className={`bg-gradient-to-br from-red-500 to-red-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
-                ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-red-600 hover:to-red-800'}`}
-            >
-              ❌ <span>Fold</span>
-            </button>
-            <button
-                onClick={Bet}
-                disabled={!isYourTurn}
-                className={`bg-gradient-to-br from-green-500 to-green-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
-                  ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-green-600 hover:to-green-800'}`}>
-                🪙 <span>{`Bet ${myBet}`}</span>
-            </button>
+            {balanceCircle ? (
+              <>
+                {/* Check */}
+                <button
+                  onClick={() => {
+                    if (minBet <= maxBet){
+                      onMyBet(true, minBet)
+                    }
+                    else{
+                      onMyBet(true, maxBet)
+                    }
+                  }}
+                  disabled={!isYourTurn}
+                  className={`bg-gradient-to-br from-blue-500 to-blue-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
+                    ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-blue-600 hover:to-blue-800'}`}
+                >
+                  ✅ <span>Check {(minBet <= maxBet)? (`${minBet}`):("AllIn")}</span>
+                </button>
+
+                {/* Fold */}
+                <button
+                  onClick={() => onMyBet(false, 0)}
+                  disabled={!isYourTurn}
+                  className={`bg-gradient-to-br from-red-500 to-red-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
+                    ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-red-600 hover:to-red-800'}`}
+                >
+                  ❌ <span>Fold</span>
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Raise */}
+                <button
+                  onClick={() => setopenRaise(!openRaise)}
+                  disabled={!isYourTurn}
+                  className={`bg-gradient-to-br from-yellow-400 to-yellow-600 text-black font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
+                    ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-yellow-500 hover:to-yellow-700'}`}
+                >
+                  💰 <span>Raise</span>
+                </button>
+
+                {/* Slider for raise */}
+                {openRaise && (
+                  <div className="flex flex-col items-center gap-2">
+                    <input
+                      type="range"
+                      min={Number(minBet)}
+                      max={Number(maxBet)}
+                      step={0.01}
+                      value={Number(myBet)}
+                      onChange={(e) => setmyBet(Number(e.target.value))}
+                      className="w-64"
+                    />
+                  </div>
+                )}
+
+                {/* Call */}
+                <button
+                  onClick={() => setmyBet(Number(minBet))}
+                  disabled={!isYourTurn}
+                  className={`bg-gradient-to-br from-blue-500 to-blue-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
+                    ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-blue-600 hover:to-blue-800'}`}
+                >
+                  ☎️ <span>Call</span>
+                </button>
+
+                {/* Fold */}
+                <button
+                  onClick={() => setmyBet(-1)}
+                  disabled={!isYourTurn}
+                  className={`bg-gradient-to-br from-red-500 to-red-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2
+                    ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:from-red-600 hover:to-red-800'}`}
+                >
+                  ❌ <span>Fold</span>
+                </button>
+
+                {/* Bet */}
+                <button
+                  onClick={Bet}
+                  disabled={!isYourTurn}
+                  className={`bg-gradient-to-br from-green-500 to-green-700 text-white font-bold py-5 px-10 text-2xl rounded-2xl shadow-lg transition-transform flex items-center justify-center gap-2
+                    ${!isYourTurn ? 'opacity-50 cursor-not-allowed hover:scale-100' : 'hover:scale-105 hover:from-green-600 hover:to-green-800'}`}
+                >
+                  🪙
+                  {Number(myBet) >= 0 ? `Bet ${myBet}` : `Fold`}
+                </button>
+
+              </>
+            )}
           </div>
         )}
       </div>
