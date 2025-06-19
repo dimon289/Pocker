@@ -495,10 +495,115 @@ export class RoomsGateway implements OnGatewayConnection {
   async handleShowdown(roomId: number, poker: poker, roomPlayers: players[], lastStep){
     this.server.to(String(roomId)).emit('Showdown'); 
     const PlayerCombinationMap = new Map<number, string[]>()
+
+    function handDefine(cards:string[]){
+
+      const fleshRoyale: string[][] = [['♥A','♥K','♥Q','♥J','♥1'],['♦A','♦K','♦Q','♦J','♦1'],['♠A','♠K','♠Q','♠J','♠1'],['♣A','♣K','♣Q','♣J','♣1']]
+      let i = 100
+      for(let combination of fleshRoyale){
+        const isMatch = combination.every(card => cards.includes(card));
+        if(isMatch) 
+          return 100
+      }
+      i-=1
+      const streatFlash: string[][][] =
+        [[['♥9','♥1','♥J','♥Q','♥K'],['♦9','♦1','♦J','♦Q','♦K'],['♠9','♠1','♠J','♠Q','♠K'],['♣9','♣1','♣J','♣Q','♣K']],
+         [['♥8','♥9','♥1','♥J','♥Q'],['♦8','♦9','♦1','♦J','♦Q'],['♠8','♠9','♠1','♠J','♠Q'],['♣8','♣9','♣1','♣J','♣Q']],
+         [['♥7','♥8','♥9','♥1','♥J'],['♦7','♦8','♦9','♦1','♦J'],['♠7','♠8','♠9','♠1','♠J'],['♣7','♣8','♣9','♣1','♣J']],
+         [['♥7','♥8','♥9','♥1','♥J'],['♦7','♦8','♦9','♦1','♦J'],['♠7','♠8','♠9','♠1','♠J'],['♣7','♣8','♣9','♣1','♣J']],
+         [['♥6','♥7','♥8','♥9','♥1'],['♦6','♦7','♦8','♦9','♦1'],['♠6','♠7','♠8','♠9','♠1'],['♣6','♣7','♣8','♣9','♣1']],
+         [['♥5','♥6','♥7','♥8','♥9'],['♦5','♦6','♦7','♦8','♦9'],['♠5','♠6','♠7','♠8','♠9'],['♣5','♣6','♣7','♣8','♣9']],
+         [['♥4','♥5','♥6','♥7','♥8'],['♦4','♦5','♦6','♦7','♦8'],['♠4','♠5','♠6','♠7','♠8'],['♣4','♣5','♣6','♣7','♣8']],
+         [['♥3','♥4','♥5','♥6','♥7'],['♦3','♦4','♦5','♦6','♦7'],['♠3','♠4','♠5','♠6','♠7'],['♣3','♣4','♣5','♣6','♣7']],
+         [['♥2','♥3','♥4','♥5','♥6'],['♦2','♦3','♦4','♦5','♦6'],['♠2','♠3','♠4','♠5','♠6'],['♣2','♣3','♣4','♣5','♣6']],
+         [['♥A','♥2','♥3','♥4','♥5'],['♦A','♦2','♦3','♦4','♦5'],['♠A','♠2','♠3','♠4','♠5'],['♣A','♣2','♣3','♣4','♣5']]]
+
+      for(let group of streatFlash){
+        for(let combination of group){
+          const isMatch = combination.every(card => cards.includes(card));
+          if(isMatch) 
+            return i
+        }
+        i-=1
+      }
+
+      let kare = 0
+      let count = 0
+      let rank:string
+      let ranks: string[] = []
+      cards.map(card => {
+        if(!ranks.includes(card[1])){
+          ranks.push(card[1])
+          count = 1
+          cards.map(unicRank =>{
+            if(card[1] === unicRank[1])
+              count += 1
+          })
+          if(count>kare){
+            kare = count
+            rank = card[1]
+          }
+        }
+      });
+      let fullHouse = 0
+      if(kare = 4){
+        return i
+      }else{
+        i-=1
+        
+      }
+        
+
+
+
+
+
+
+
+
+      let flash = 0
+      count = 0
+      let suits: string[] = []
+      cards.map(card => {
+        if(!ranks.includes(card[0])){
+          suits.push(card[0])
+          count = 1
+          cards.map(unicSuit =>{
+            if(card[0] === unicSuit[0])
+              count += 1
+          })
+          if(count>kare)
+            flash = count
+        }
+      });
+
+      if(flash >= 5)
+        return i
+      i-=1
+
+      
+
+
+  
+
+
+
+
+
+      
+
+
+
+
+    }
     
     roomPlayers.forEach(async (player) => {
       if((await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id))!.steptype !== StepTypeEnum.Fold){
         let cards = poker.cards.concat(player.cards) 
+
+
+
+
         PlayerCombinationMap.set(player.id,cards)
       }
     });
