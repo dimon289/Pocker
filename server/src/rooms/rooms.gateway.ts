@@ -527,7 +527,7 @@ export class RoomsGateway implements OnGatewayConnection {
         for(let combination of group){
           const isMatch = combination.every(card => cards.includes(card));
           if(isMatch) 
-            return {combination: 'streetFlash', value: combination}
+            return {combination: 'streetFlash', value: i}
         }
         i-=1
       }
@@ -603,14 +603,6 @@ export class RoomsGateway implements OnGatewayConnection {
           value: three * 15 + pair // значення для порівняння фулл-хаусів
         };
       }
-        
-
-
-
-
-
-
-
 
       let flash = 0
       count = 0
@@ -636,15 +628,22 @@ export class RoomsGateway implements OnGatewayConnection {
          [['9','1','J','Q','K']],
          [['8','9','1','J','Q']],
          [['7','8','9','1','J']],
-         [['7','8','9','1','J']],
          [['6','7','8','9','1']],
          [['5','6','7','8','9']],
          [['4','5','6','7','8']],
          [['3','4','5','6','7']],
          [['2','3','4','5','6']],
          [['A','2','3','4','5']]]
+         
+      for(let group of street){
+        for(let combination of group){
+          const isMatch = combination.every(card => cards.includes(card));
+          if(isMatch) 
+            return {combination: 'street', value: i}
+        }
+        i-=1
+      }
       
-
 
   
 
