@@ -604,25 +604,33 @@ export class RoomsGateway implements OnGatewayConnection {
         };
       }
 
-      let flash = 0
-      count = 0
-      let suits: string[] = []
-      cards.map(card => {
-        if(!ranks.includes(card[0])){
-          suits.push(card[0])
-          count = 1
-          cards.map(unicSuit =>{
-            if(card[0] === unicSuit[0])
-              count += 1
-          })
-          if(count>kare)
-            flash = count
+     
+      let flushCounter: string[][] = [[], [], [], []]; // 0 - ♥, 1 - ♦, 2 - ♠, 3 - ♣
+
+      cards.forEach((card) => {
+        const suit = card[0]; // масть
+
+        if (suit === '♥') {
+          flushCounter[0].push(card);
+        } else if (suit === '♦') {
+          flushCounter[1].push(card);
+        } else if (suit === '♠') {
+          flushCounter[2].push(card);
+        } else if (suit === '♣') {
+          flushCounter[3].push(card);
         }
       });
 
-      if(flash >= 5)
-        return i
-      i-=1
+      flushCounter = flushCounter.map(flushCards =>
+        flushCards.slice().sort((a, b) => {
+          const rankA = a.slice(1).toLowerCase();
+          const rankB = b.slice(1).toLowerCase();
+          return cardOrder.indexOf(rankA) - cardOrder.indexOf(rankB);
+        })
+      );
+
+      console.log('Усі карти, розбиті по мастях та відсортовані:', flushCounter);
+
       const street: string[][][] =
         [[['A','1','J','Q','K']],
          [['9','1','J','Q','K']],
