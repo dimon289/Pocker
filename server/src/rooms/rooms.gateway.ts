@@ -12,7 +12,7 @@ import { error, table } from 'console';
 import { first } from 'rxjs';
 import e from 'express';
 
-@WebSocketGateway({ namespace: '/rooms', cors: { origin: 'http://localhost:5173', credentials: true } })
+@WebSocketGateway({ namespace: '/rooms', cors: { origin: 'http://142.93.175.150', credentials: true } })
 @Injectable()
 export class RoomsGateway implements OnGatewayConnection {
   @WebSocketServer()
