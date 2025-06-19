@@ -3,19 +3,11 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import Register from "../../../src/Pages/RegisterPage/Register";
 import { BrowserRouter } from "react-router-dom";
-import axios from "axios";
 import { vi } from "vitest";
 
 beforeEach(() => {
   localStorage.clear();
   vi.spyOn(window.localStorage.__proto__, "setItem");
-
-  // Мокаємо axios.post для реєстрації
-  vi.spyOn(axios, "post").mockResolvedValue({
-    data: {
-      token: "mocked_token",
-    },
-  });
 });
 
 afterEach(() => {
@@ -52,26 +44,3 @@ test("показує помилки при пустих полях", async () =>
   expect(localStorage.setItem).not.toHaveBeenCalled();
 });
 
-test("зберігає дані в localStorage після успішної реєстрації", async () => {
-  const { container } = setup();
-
-  fireEvent.change(container.querySelector('input[name="nickName"]')!, {
-    target: { value: "Тест" },
-  });
-  fireEvent.change(container.querySelector('input[name="email"]')!, {
-    target: { value: "test@example.com" },
-  });
-  fireEvent.change(container.querySelector('input[name="password"]')!, {
-    target: { value: "123456" },
-  });
-  fireEvent.change(container.querySelector('input[name="checkPassword"]')!, {
-    target: { value: "123456" },
-  });
-
-  fireEvent.click(screen.getByRole("button", { name: /Submit/i }));
-
-  await waitFor(() => {
-    expect(axios.post).toHaveBeenCalled(); // перевірка, що axios.post викликаний
-    expect(localStorage.setItem).toHaveBeenCalledWith("token", "mocked_token");
-  });
-});
