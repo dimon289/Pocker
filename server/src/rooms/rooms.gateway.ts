@@ -604,7 +604,7 @@ export class RoomsGateway implements OnGatewayConnection {
         };
       }
 
-     
+      let flush:string[] = []
       let flushCounter: string[][] = [[], [], [], []]; // 0 - ♥, 1 - ♦, 2 - ♠, 3 - ♣
 
       cards.forEach((card) => {
@@ -621,13 +621,16 @@ export class RoomsGateway implements OnGatewayConnection {
         }
       });
 
-      flushCounter = flushCounter.map(flushCards =>
-        flushCards.slice().sort((a, b) => {
-          const rankA = a.slice(1).toLowerCase();
-          const rankB = b.slice(1).toLowerCase();
-          return cardOrder.indexOf(rankA) - cardOrder.indexOf(rankB);
-        })
-      );
+      flushCounter = flushCounter.map(flushCards => flushCards.slice().sort((a, b) => {
+        const rankA = a.slice(1).toLowerCase();
+        const rankB = b.slice(1).toLowerCase();
+        return cardOrder.indexOf(rankA) - cardOrder.indexOf(rankB);
+      }));
+
+      // Знайти flush серед мастей
+      flush = flushCounter.find(flushCards => flushCards.length >= 5) ?? [];
+
+    
 
       console.log('Усі карти, розбиті по мастях та відсортовані:', flushCounter);
 
