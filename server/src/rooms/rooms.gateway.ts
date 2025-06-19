@@ -749,13 +749,15 @@ export class RoomsGateway implements OnGatewayConnection {
     }
     let winner: players = roomPlayers[0]
 
-    roomPlayers.forEach(async (player) => {
-      if((await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id))!.steptype !== StepTypeEnum.Fold){
-        let cards = poker.cards.concat(player.cards) 
-        let combination = handDefine(cards)
-        PlayerCombinationMap.set(player,combination)
+    for (const player of roomPlayers) {
+      const step = await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id);
+      if (step?.steptype !== StepTypeEnum.Fold) {
+        const cards = poker.cards.concat(player.cards);
+        const combination = handDefine(cards);
+        PlayerCombinationMap.set(player, combination);
       }
-    });
+    }
+    console.warn(PlayerCombinationMap.entries())
     let fleshRoyales: players[] = []
     let streetFlushes: players[] = []
     let kares: players[] = []
@@ -766,7 +768,8 @@ export class RoomsGateway implements OnGatewayConnection {
     let twoPairs: players[] = []
     let pairs: players[] = []
     let highestCard: players[] = []
-    PlayerCombinationMap.entries()[0].map(key => {
+    console.warn(PlayerCombinationMap.entries())
+    for(const [key,value] of PlayerCombinationMap.entries()){
       if(PlayerCombinationMap.get(key)?.combination == 'fleshRoyale'){
         fleshRoyales.push(key)
         return
@@ -798,7 +801,7 @@ export class RoomsGateway implements OnGatewayConnection {
       if(PlayerCombinationMap.get(key)?.combination == 'HighestCard'){
         highestCard.push(key)
       }
-    });
+    };
     if(fleshRoyales.length>=1){
       winner = fleshRoyales[0]
     }else if(streetFlushes.length>=1){
