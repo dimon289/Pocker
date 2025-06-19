@@ -498,8 +498,7 @@ export class RoomsGateway implements OnGatewayConnection {
     await this.handleShowdown(roomId, poker, roomPlayers, lastStep)
   } 
   async handleShowdown(roomId: number, poker: poker, roomPlayers: players[], lastStep){
-    this.server.to(String(roomId)).emit('Showdown'); 
-    const PlayerCombinationMap = new Map<number, string[]>()
+    const PlayerCombinationMap = new Map<players, { combination: string; value: number }>();
 
     function handDefine(cards:string[]){
       const cardOrder = ['2', '3', '4', '5', '6', '7', '8', '9', '1', 'j', 'q', 'k', 'a'];
@@ -508,7 +507,7 @@ export class RoomsGateway implements OnGatewayConnection {
       for(let combination of fleshRoyale){
         const isMatch = combination.every(card => cards.includes(card));
         if(isMatch) 
-          return {combination: 'fleshRoyale', value: ''}
+          return {combination: 'fleshRoyale', value: 1}
       }
       i-=1
       const streetFlash: string[][][] =
@@ -527,48 +526,52 @@ export class RoomsGateway implements OnGatewayConnection {
         for(let combination of group){
           const isMatch = combination.every(card => cards.includes(card));
           if(isMatch) 
-            return {combination: 'streetFlash', value: i}
+            return {combination: 'streetFlush', value: i}
         }
         i-=1
       }
 
-      let kare = 0
-      let count = 0
-      let rank:string = '100'
-      let ranks:any = []
-      cards.map(card => {
-        if(!ranks.includes(card[1])){
-          let cardRank = ''
-          if(card[1] === '1')
-            cardRank = '10'
-          else if(card[1]==='J')
-            cardRank = '11'
-          else if(card[1]==='Q')
-            cardRank = '12'
-          else if(card[1]==='K')
-            cardRank = '13'
-          else if(card[1]==='A')
-            cardRank = '14'
-          else cardRank = card[1]
-          ranks.push(card[1])
-          count = 1
-          cards.map(unicRank =>{
-            if(card[1] === unicRank[1])
-              count += 1
-          })
-          count-=1
-          if(count>kare){
-            kare = count
-            rank = cardRank
+      function findKare(cards: string[]) {
+        const rankMap = new Map<number, number>();
+      
+        for (let card of cards) {
+          let rankChar = card.slice(1);
+          let rank = 0;
+          if (rankChar === '1') rank = 10;
+          else if (rankChar === 'J') rank = 11;
+          else if (rankChar === 'Q') rank = 12;
+          else if (rankChar === 'K') rank = 13;
+          else if (rankChar === 'A') rank = 14;
+          else rank = Number(rankChar);
+      
+          rankMap.set(rank, (rankMap.get(rank) || 0) + 1);
+        }
+      
+        let kareRank: number | null = null;
+        let kicker: number = 0;
+      
+        for (let [rank, count] of [...rankMap.entries()].sort((a, b) => b[0] - a[0])) {
+          if (count === 4) {
+            kareRank = rank;
+          } else if (count >= 1 && kareRank !== null && kicker === 0) {
+            kicker = rank; // найвища залишкова карта
           }
         }
-      });
       
-
-      if(kare = 4){
-        return {combination: 'kare', value: rank}
+        if (kareRank !== null) {
+          // Формула для порівняння: каре * 15 + кікер
+          return {
+            combination: 'kare',
+            value: kareRank * 15 + kicker,
+          };
+        }
+      
+        return null;
       }
-      ranks = []
+      let kare = findKare(cards)
+      if (kare){
+        return kare
+      }
       const rankMap = new Map<number, number>();
 
       for (let card of cards) {
@@ -627,12 +630,27 @@ export class RoomsGateway implements OnGatewayConnection {
         return cardOrder.indexOf(rankA) - cardOrder.indexOf(rankB);
       }));
 
+      let ranks: number[] = []
+      cards.map((card)=> {
+        if(card[1] === 'A')
+          ranks.push(14)
+        else if(card[1] === 'K')
+          ranks.push(13)
+        else if(card[1] === 'Q')
+          ranks.push(12)
+        else if(card[1] === 'J')
+          ranks.push(11)
+        else if(card[1] === '1')
+          ranks.push(10)
+        else ranks.push(Number(card[1]))
+      })
       // Знайти flush серед мастей
       flush = flushCounter.find(flushCards => flushCards.length >= 5) ?? [];
-
+      if (flush.length >= 5){
+        const sumRanks = ranks.reduce((a, b) => a + b, 0);
+      }
+  
     
-
-      console.log('Усі карти, розбиті по мастях та відсортовані:', flushCounter);
 
       const street: string[][][] =
         [[['A','1','J','Q','K']],
@@ -715,17 +733,54 @@ export class RoomsGateway implements OnGatewayConnection {
         value: rankMap.entries()[0] // значення для порівняння фулл-хаусів
       };
     }
-    
+    let winner: players
+
     roomPlayers.forEach(async (player) => {
       if((await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id))!.steptype !== StepTypeEnum.Fold){
         let cards = poker.cards.concat(player.cards) 
-
-
-
-
-        PlayerCombinationMap.set(player.id,cards)
+        let combination = handDefine(cards)
+        PlayerCombinationMap.set(player,combination)
       }
     });
 
+    let streetFlushes: players[] = []
+    let kares: players[] = []
+    let fullHouses: players[] = []
+    let flushes: players[] = []
+    let streets: players[] = []
+    let sets: players[] = []
+    let twoPairs: players[] = []
+    let pair: players[] = []
+    let highestCard: players[] = []
+    PlayerCombinationMap.entries()[0].map(key => {
+      if(PlayerCombinationMap.get(key)?.combination == 'fleshRoyale'){
+        winner = key
+        return
+      }
+      if(PlayerCombinationMap.get(key)?.combination == 'streetFlush'){
+        streetFlushes.push(key)
+      }
+      if(PlayerCombinationMap.get(key)?.combination == 'kare'){
+        kares.push(key)
+      }
+      if(PlayerCombinationMap.get(key)?.combination == 'fullHouse'){
+        fullHouses.push(key)
+      }
+      if(PlayerCombinationMap.get(key)?.combination == 'streetFlush'){
+        streetFlushes.push(key)
+      }
+      if(PlayerCombinationMap.get(key)?.combination == 'streetFlush'){
+        streetFlushes.push(key)
+      }
+      if(PlayerCombinationMap.get(key)?.combination == 'streetFlush'){
+        streetFlushes.push(key)
+      }
+      if(PlayerCombinationMap.get(key)?.combination == 'streetFlush'){
+        streetFlushes.push(key)
+      }
+    });
+
+
+    this.server.to(String(roomId)).emit('Showdown'); 
   }
 }
