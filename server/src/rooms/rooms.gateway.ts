@@ -531,9 +531,12 @@ export class RoomsGateway implements OnGatewayConnection {
         i-=1
       }
 
-      function findKare(cards: string[]) {
-        const rankMap = new Map<number, number>();
-      
+      let allRanks: number[] = []
+      let ranks: number[] = []
+      let rank: number = 0
+      let count: number = 0
+
+      for (let index = 0; index < 3; index++) {
         for (let card of cards) {
           let rankChar = card.slice(1);
           let rank = 0;
@@ -544,69 +547,16 @@ export class RoomsGateway implements OnGatewayConnection {
           else if (rankChar === 'A') rank = 14;
           else rank = Number(rankChar);
       
-          rankMap.set(rank, (rankMap.get(rank) || 0) + 1);
+          allRanks.push(rank)
         }
-      
-        let kareRank: number | null = null;
-        let kicker: number = 0;
-      
-        for (let [rank, count] of [...rankMap.entries()].sort((a, b) => b[0] - a[0])) {
-          if (count === 4) {
-            kareRank = rank;
-          } else if (count >= 1 && kareRank !== null && kicker === 0) {
-            kicker = rank; // найвища залишкова карта
-          }
-        }
-      
-        if (kareRank !== null) {
-          // Формула для порівняння: каре * 15 + кікер
-          return {
-            combination: 'kare',
-            value: kareRank * 15 + kicker,
-          };
-        }
-      
-        return null;
-      }
-      let kare = findKare(cards)
-      if (kare){
-        return kare
-      }
-      const rankMap = new Map<number, number>();
-
-      for (let card of cards) {
-        let rankChar = card.slice(1); // наприклад '♥Q' → 'Q'
-        let rank = 0;
-        if (rankChar === '1') rank = 10;
-        else if (rankChar === 'J') rank = 11;
-        else if (rankChar === 'Q') rank = 12;
-        else if (rankChar === 'K') rank = 13;
-        else if (rankChar === 'A') rank = 14;
-        else rank = Number(rankChar);
-
-        rankMap.set(rank, (rankMap.get(rank) || 0) + 1);
-      }
-
-      let three = 0;
-      let pair = 0;
-
-      for (let [rank, count] of [...rankMap.entries()].sort((a, b) => b[0] - a[0])) {
-        if (count >= 3 && three === 0) {
-          three = rank;
-          count -= 3;
-        }
-        if (count >= 2 && pair === 0) {
-          pair = rank;
+        allRanks.sort((a, b)=> b - a)
+        ranks = allRanks
+        while(ranks.length!==0){
+          let first = ranks[0]
+          ranks.filter(rank=>rank!==ranks[0])
         }
       }
-
-      if (three && pair) {
-        return {
-          combination: 'fullHouse',
-          value: three * 15 + pair // значення для порівняння фулл-хаусів
-        };
-      }
-
+        
       let flush:string[] = []
       let flushCounter: string[][] = [[], [], [], []]; // 0 - ♥, 1 - ♦, 2 - ♠, 3 - ♣
 
@@ -630,37 +580,37 @@ export class RoomsGateway implements OnGatewayConnection {
         return cardOrder.indexOf(rankA) - cardOrder.indexOf(rankB);
       }));
 
-      let ranks: number[] = []
+      allRanks = []
       cards.map((card)=> {
         if(card[1] === 'A')
-          ranks.push(14)
+          allRanks.push(14)
         else if(card[1] === 'K')
-          ranks.push(13)
+          allRanks.push(13)
         else if(card[1] === 'Q')
-          ranks.push(12)
+          allRanks.push(12)
         else if(card[1] === 'J')
-          ranks.push(11)
+          allRanks.push(11)
         else if(card[1] === '1')
-          ranks.push(10)
-        else ranks.push(Number(card[1]))
+          allRanks.push(10)
+        else allRanks.push(Number(card[1]))
       })
       // Знайти flush серед мастей
       flush = flushCounter.find(flushCards => flushCards.length >= 5) ?? [];
       if (flush.length >= 5){
         flush.map((card)=> {
         if(card[1] === 'A')
-          ranks.push(14)
+          allRanks.push(14)
         else if(card[1] === 'K')
-          ranks.push(13)
+          allRanks.push(13)
         else if(card[1] === 'Q')
-          ranks.push(12)
+          allRanks.push(12)
         else if(card[1] === 'J')
-          ranks.push(11)
+          allRanks.push(11)
         else if(card[1] === '1')
-          ranks.push(10)
-        else ranks.push(Number(card[1]))
+          allRanks.push(10)
+        else allRanks.push(Number(card[1]))
       })
-        const sumRanks = ranks.reduce((a, b) => a + b, 0);
+        const sumRanks = allRanks.reduce((a, b) => a + b, 0);
         return {combination:'flush',value: sumRanks }
       }
   
@@ -687,66 +637,67 @@ export class RoomsGateway implements OnGatewayConnection {
         i-=1
       }
       
-      if (three){
-        return {
-          combination: 'set',
-          value: three // значення для порівняння фулл-хаусів
-        };
-      }
-      function findTwoPairs(cards: string[]) {
-        const rankMap = new Map<number, number>();
+      // if (three){
+      //   return {
+      //     combination: 'set',
+      //     value: three // значення для порівняння фулл-хаусів
+      //   };
+      // }
+      // function findTwoPairs(cards: string[]) {
+      //   const rankMap = new Map<number, number>();
       
-        for (let card of cards) {
-          let rankChar = card.slice(1);
-          let rank = 0;
-          if (rankChar === '1') rank = 10;
-          else if (rankChar === 'J') rank = 11;
-          else if (rankChar === 'Q') rank = 12;
-          else if (rankChar === 'K') rank = 13;
-          else if (rankChar === 'A') rank = 14;
-          else rank = Number(rankChar);
+      //   for (let card of cards) {
+      //     let rankChar = card.slice(1);
+      //     let rank = 0;
+      //     if (rankChar === '1') rank = 10;
+      //     else if (rankChar === 'J') rank = 11;
+      //     else if (rankChar === 'Q') rank = 12;
+      //     else if (rankChar === 'K') rank = 13;
+      //     else if (rankChar === 'A') rank = 14;
+      //     else rank = Number(rankChar);
       
-          rankMap.set(rank, (rankMap.get(rank) || 0) + 1);
-        }
+      //     rankMap.set(rank, (rankMap.get(rank) || 0) + 1);
+      //   }
       
-        const pairs: number[] = [];
+      //   const pairs: number[] = [];
       
-        // Збираємо значення рангів, які мають 2 або більше карт
-        for (let [rank, count] of [...rankMap.entries()].sort((a, b) => b[0] - a[0])) {
-          if (count >= 2) {
-            pairs.push(rank);
-            if (pairs.length === 2) break; // тільки 2 пари нас цікавлять
-          }
-        }
+      //   // Збираємо значення рангів, які мають 2 або більше карт
+      //   for (let [rank, count] of [...rankMap.entries()].sort((a, b) => b[0] - a[0])) {
+      //     if (count >= 2) {
+      //       pairs.push(rank);
+      //       if (pairs.length === 2) break; // тільки 2 пари нас цікавлять
+      //     }
+      //   }
       
-        if (pairs.length === 2) {
-          // Для порівняння двох пар: старша пара * 15^2 + молодша пара * 15
-          return {
-            combination: 'twoPairs',
-            value: pairs[0] * 15 * 15 + pairs[1] * 15,
-          };
-        }
+      //   if (pairs.length === 2) {
+      //     // Для порівняння двох пар: старша пара * 15^2 + молодша пара * 15
+      //     return {
+      //       combination: 'twoPairs',
+      //       value: pairs[0] * 15 * 15 + pairs[1] * 15,
+      //     };
+      //   }
       
-        return null;
-      }
+      //   return null;
+      // }
 
-      let isTwoPairs = findTwoPairs(cards)
-      if(isTwoPairs){
-        return isTwoPairs
-      }
+      // let isTwoPairs = findTwoPairs(cards)
+      // if(isTwoPairs){
+      //   return isTwoPairs
+      // }
 
-      if (pair){
-        return {
-          combination: 'pair',
-          value: pair // значення для порівняння фулл-хаусів
-        };
-      }
+      // if (pair){
+      //   return {
+      //     combination: 'pair',
+      //     value: pair // значення для порівняння фулл-хаусів
+      //   };
+      // }
 
-      return {
-        combination: 'HighestCard',
-        value: rankMap.entries()[0] // значення для порівняння фулл-хаусів
-      };
+      // return {
+      //   combination: 'HighestCard',
+      //   value: rankMap.entries()[0] // значення для порівняння фулл-хаусів
+      // };
     }
+    
     let winner: players = roomPlayers[0]
 
     for (const player of roomPlayers) {
@@ -754,7 +705,7 @@ export class RoomsGateway implements OnGatewayConnection {
       if (step?.steptype !== StepTypeEnum.Fold) {
         const cards = poker.cards.concat(player.cards);
         const combination = handDefine(cards);
-        PlayerCombinationMap.set(player, combination);
+        // PlayerCombinationMap.set(player, combination);
       }
     }
     console.warn(PlayerCombinationMap.entries())
@@ -926,8 +877,6 @@ export class RoomsGateway implements OnGatewayConnection {
         })
       }
     }
-
-
 
     this.server.to(String(roomId)).emit('Showdown',{winner: winner, roomPlayers: roomPlayers}); 
   }
