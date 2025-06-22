@@ -205,14 +205,14 @@ export class RoomsGateway implements OnGatewayConnection {
     if(Bet<0){
       return StepTypeEnum.Fold
     }
-    console.warn(lastStep)
+    // console.warn(lastStep)
     if (!lastStep)
       return StepTypeEnum.First;
 
-    const lastBet = Math.round(Number(lastStep.bet)*100)/100
     if (Bet === balance)
       return StepTypeEnum.Allin
 
+    const lastBet = Math.round(Number(lastStep.bet)*100)/100
     if(lastStep.steptype === StepTypeEnum.Check && lastBet == Bet)
       return StepTypeEnum.Check;
     // console.warn('lastStep.steptype === StepTypeEnum.First: ' + (lastStep.steptype === StepTypeEnum.First) + ' Bet === Number(lastStep.bet): '+ (Bet === Number(lastStep.bet)))
@@ -241,12 +241,11 @@ export class RoomsGateway implements OnGatewayConnection {
       const maxBet = Math.round(Number(user!.mybalance)*100)/100
       const prewStep = await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id)
       let lastBet:number, prewBet: number
-      let biggestBet = (await this.stepService.findBiggestBet(poker.id))
+      let biggestBet = Math.round((await this.stepService.findBiggestBet(poker.id))*100)/100
       let currMaxBet: number, currMinBet: number
         
       if(prewStep){
         prewBet = Math.round(Number(prewStep.bet)*100)/100
-        lastBet = Math.round(Number(lastStep!.bet)*100)/100
         currMaxBet = maxBet-prewBet
         currMinBet = (biggestBet - prewBet)
       }
@@ -259,8 +258,6 @@ export class RoomsGateway implements OnGatewayConnection {
           currMinBet = currMaxBet          
       }else
         currMinBet = 0.05
-      
-
 
       this.server.to(String(roomId)).emit('playerTurn', {playerId: player.id});
 
@@ -276,7 +273,7 @@ export class RoomsGateway implements OnGatewayConnection {
             Step = await this.stepService.create({
               pockerid: poker.id,
               playerid: player.id,
-              bet: 0.05,
+              bet: currMinBet,
               maxbet: maxBet,
               steptype: StepTypeEnum.Fold,
             });
@@ -298,28 +295,31 @@ export class RoomsGateway implements OnGatewayConnection {
         socket.on('myStep', async (currentBet: number) => {
           currentBet = Math.round(currentBet*100)/100
           let bet: number = currentBet;
-          
-          if (prewStep)
-            bet += prewBet;
-          if (bet > maxBet)
-            bet = maxBet;
-          if (bet < 0){
-            bet = 0
-            player.status = false;
-          }
-          if(currentBet<0){
-            bet = -1
-          }
-          bet = Math.round(bet*100)/100
-          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep,currentBet, bet, maxBet);
-
-          
 
           if (resolved) return;
           resolved = true;
           clearTimeout(timeout);
           socket.removeAllListeners('myStep');
 
+          if(currentBet>=0){
+            if (prewStep)
+              bet += prewBet;
+            if (bet > maxBet){
+              bet = maxBet;
+              player.status = false
+            }
+            poker.bank += currentBet
+          }else{
+            bet = -1
+            player.status = false
+          } 
+          bet = Math.round(bet*100)/100
+          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep,currentBet, bet, maxBet);
+
+          if (bet<0){
+            if(prewBet) bet = prewBet;
+            else bet = 0
+          }
           Step = await this.stepService.create({
             pockerid: poker.id,
             playerid: player.id,
@@ -328,10 +328,7 @@ export class RoomsGateway implements OnGatewayConnection {
             steptype: steptype,
           });
           Step
-          poker.bank += currentBet;
 
-          if (Step.steptype === StepTypeEnum.Fold||Step.steptype ===StepTypeEnum.Allin)
-            player.status = false; 
           resolve(Step)
         });
       }).then(()=>{
@@ -364,20 +361,13 @@ export class RoomsGateway implements OnGatewayConnection {
       let biggestBet = (await this.stepService.findBiggestBet(poker.id))
       let currMaxBet: number, currMinBet: number
         
-      if(prewStep){
-        prewBet = Math.round(Number(prewStep.bet)*100)/100
-        lastBet = Math.round(Number(lastStep!.bet)*100)/100
-        currMaxBet = maxBet-prewBet
-        currMinBet = (lastBet - prewBet)
-      }
-      else{
-        currMaxBet = maxBet
-      }
-      if(biggestBet){
-        currMinBet = biggestBet
-        if (biggestBet>currMaxBet) 
-          currMinBet = currMaxBet          
-      }
+
+      prewBet = Math.round(Number(prewStep!.bet)*100)/100
+      lastBet = Math.round(Number(lastStep!.bet)*100)/100
+      currMaxBet = maxBet-prewBet 
+      currMinBet = biggestBet
+      if (biggestBet>currMaxBet) 
+        currMinBet = currMaxBet          
       
       this.server.to(String(roomId)).emit('playerTurn', {currMaxBet: Math.round(currMaxBet*100)/100})
 
@@ -401,14 +391,15 @@ export class RoomsGateway implements OnGatewayConnection {
 
         socket.emit('makeYourStep', {currMaxBet: Math.round(currMaxBet*100)/100, currMinBet: Math.round(currMinBet*100)/100})
         socket.removeAllListeners('myStep');
-        socket.on('onmyStep', async (balancing: boolean) => {
+        socket.on('onMyStep', async (balancing: boolean) => {
           currMinBet = Math.round(currMinBet*100)/100
           let currentBet = prewBet
           let steptype: StepTypeEnum
           if(balancing){
             currentBet = currMinBet
-            if(currMaxBet < biggestBet)
+            if(currMaxBet <= biggestBet){
               steptype = StepTypeEnum.Allin
+              player.status = false}
             if(currentBet<=biggestBet)
               steptype = StepTypeEnum.Call
             if(currentBet===biggestBet)
