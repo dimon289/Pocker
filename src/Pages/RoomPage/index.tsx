@@ -321,7 +321,12 @@ const RoomPage: React.FC = () => {
         {/* Community Cards */}
       <div className="flex gap-3 sm:gap-4 md:gap-5 lg:gap-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl z-10 flex-wrap justify-center">
         {communityCards.map((card, index) => (
-          <span key={index}>{getCardUnicode(card)}</span>
+          <span
+            key={index}
+            className="font-serif text-[32px] sm:text-[40px] md:text-[48px] lg:text-[60px]"
+          >
+            {getCardUnicode(card)}
+          </span>
         ))}
       </div>
 
@@ -396,7 +401,7 @@ const RoomPage: React.FC = () => {
         {(!hasJoinedTable && gameStatus =='Waiting for players...') && (
           <button
             onClick={handleJoinTable}
-            className="mb-4 bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-4 px-12 text-2xl rounded-2xl shadow-lg transition-transform hover:scale-105"
+            className="mb-4 bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-4 px-12 text-2xl rounded-2xl shadow-lg items-center transition-transform justify-center hover:scale-105"
           >
             Join Table
           </button>
