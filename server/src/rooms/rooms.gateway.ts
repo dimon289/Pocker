@@ -1,7 +1,7 @@
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket, OnGatewayConnection } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
-import { steptype as StepTypeEnum, step,players,poker, room, roomstatus, steptype} from '@prisma/client';
+import { steptype as StepTypeEnum, step,players,poker, room, roomstatus, steptype, balanceType} from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { PlayerService } from '../player/player.service';
 import { UserService } from '../User/user.service';
@@ -29,6 +29,7 @@ export class RoomsGateway implements OnGatewayConnection {
 
   private UseridSocketMap = new Map<number, Socket>();
   private RoomPlayersMap = new Map<number, players[]>();
+  private RoomGamestatusMap = new Map<number, string>()
 
   async handleConnection(client: Socket) {
     const { wsUserId, wsRoomId } = client.handshake.auth;
@@ -59,6 +60,8 @@ export class RoomsGateway implements OnGatewayConnection {
             };
       }))
     client.join(wsRoomId)
+    client.emit('gameStatus', {gameStatus: this.RoomGamestatusMap.get(roomId)})
+
     this.server.to(wsRoomId).emit('userJoined', {usersId: roomUsers, roomPlayers: playersUsersId})
   }
 
@@ -106,23 +109,29 @@ export class RoomsGateway implements OnGatewayConnection {
       }
       
       const roomId = client.data.roomId
-      let player = await this.playersService.create({
-        userid: userId,
-        cards: [],
-        roomid: roomId,
-      })
       let roomPlayers = this.RoomPlayersMap.get(roomId)
-      
+      let player: players
       if(roomPlayers){
-        if (roomPlayers.length >= 6)
+        if (roomPlayers.length >= 6){
           client.emit("TableFull")
-        else
-          roomPlayers.push(player)
-          this.RoomPlayersMap.set(roomId, roomPlayers)
-          this.server.to(String(client.data.roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
+          return
+        }
+        player = await this.playersService.create({
+          userid: userId,
+          cards: [],
+          roomid: roomId,
+        })
+        roomPlayers.push(player)
+        this.RoomPlayersMap.set(roomId, roomPlayers)
+        this.server.to(String(client.data.roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
           
       }
       else{
+        player = await this.playersService.create({
+          userid: userId,
+          cards: [],
+          roomid: roomId,
+        })
         roomPlayers = [player]
         this.RoomPlayersMap.set(roomId, roomPlayers)
         this.server.to(String(client.data.roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
@@ -448,18 +457,22 @@ export class RoomsGateway implements OnGatewayConnection {
   }
 
   async handlePreflop(roomId: number, poker: poker, roomPlayers: players[]){
+    this.RoomGamestatusMap.set(roomId, 'preFlop')
     this.server.to(String(roomId)).emit("preFlopStarted", {roomPlayers})
     let lastStep = await this.betCircle(roomId, poker, roomPlayers)
-    console.warn('preFlop betCirle End')
-    lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
-    console.warn('preFlop balancingCircle End')
+    let i = 0
+    for (const player of roomPlayers) {
+      if(!player.status) continue;// skip if player is loose or fold
+        i+=1
+    }
+    if (i > 1)
+      lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
     this.server.to(String(roomId)).emit('preFlopEND');
     await this.handleFlop(roomId, poker, roomPlayers, lastStep)
   }
 
   async handleFlop(roomId: number, poker: poker, roomPlayers: players[], lastStep: step | undefined){
-    console.warn('Flop started')
-    console.warn(lastStep)
+    this.RoomGamestatusMap.set(roomId, 'Flop')
     this.server.to(String(roomId)).emit("FlopStarted", {cards: [poker.cards[0],poker.cards[1],poker.cards[2]]})
     lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
     console.warn('Flop betCirle End')
@@ -470,7 +483,7 @@ export class RoomsGateway implements OnGatewayConnection {
   }
 
   async handleTurn(roomId: number, poker: poker, roomPlayers: players[], lastStep){
-    console.warn('Turn started')
+    this.RoomGamestatusMap.set(roomId, 'Turn')
     console.warn(lastStep)
     this.server.to(String(roomId)).emit("TurnStarted", {cards: [poker.cards[3]]})
     lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
@@ -482,7 +495,7 @@ export class RoomsGateway implements OnGatewayConnection {
   }  
 
   async handleRiver(roomId: number, poker: poker, roomPlayers: players[], lastStep){
-    console.warn('River started')
+    this.RoomGamestatusMap.set(roomId, 'River')
     console.warn(lastStep)
     this.server.to(String(roomId)).emit("RiverStarted", {cards: [poker.cards[4]]})
     lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
@@ -496,6 +509,7 @@ export class RoomsGateway implements OnGatewayConnection {
     const PlayerCombinationMap = new Map<players, { combination: string; value: number }>();
 
     function handDefine(cards:string[], tableCards:string[]){
+      this.RoomGamestatusMap.set(roomId, 'ShowDown')
       const cardOrder = ['2', '3', '4', '5', '6', '7', '8', '9', '1', 'j', 'q', 'k', 'a'];
       const fleshRoyale: string[][] = [['♥A','♥K','♥Q','♥J','♥1'],['♦A','♦K','♦Q','♦J','♦1'],['♠A','♠K','♠Q','♠J','♠1'],['♣A','♣K','♣Q','♣J','♣1']]
       let i = 100
@@ -639,6 +653,14 @@ export class RoomsGateway implements OnGatewayConnection {
     let winner: players = roomPlayers[0]
 
     for (const player of roomPlayers) {
+      const user = await this.usersService.finByPlayer(player)
+      const prewStep = await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id)
+      this.prisma.balance.create({data:{
+        userid: user!.id,
+        balanceType: balanceType.GameLoose,
+        balanceChange: Math.round(Number(prewStep!.bet)*100)/100
+      }})
+      await this.usersService.updateBalance(user!.id, Math.round(Number(user!.mybalance)*100)/100 - Math.round(Number(prewStep!.bet)*100)/100)
       const step = await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id);
       if (step?.steptype !== StepTypeEnum.Fold) {
         const cards = poker.cards.concat(player.cards);
@@ -806,9 +828,24 @@ export class RoomsGateway implements OnGatewayConnection {
       }
     }
 
+    const user = await this.usersService.finByPlayer(winner)
+    const prewStep = await this.stepService.findPlayerLastStepByPockerId(poker.id, winner.id)
+    this.prisma.balance.create({data:{
+      userid: user!.id,
+      balanceType: balanceType.GameWin,
+      balanceChange: Math.round(Number(prewStep!.bet)*100)/100
+    }})
+    await this.usersService.updateBalance(user!.id, Math.round(Number(user!.mybalance)*100)/100 + Math.round(Number(poker.bank)*100)/100)
+    await this.pockerService.update(poker.id, {
+      stepsid: poker.stepsid
+    })
     this.server.to(String(roomId)).emit('Showdown',{winner: winner, roomPlayers: roomPlayers}); 
-
+    const timeout = setTimeout(async () => {
+      this.RoomPlayersMap.set(roomId, [])
+      roomPlayers
+      this.RoomGamestatusMap.set(roomId, 'Waiting')
+      this.server.to(String(roomId)).emit('Waiting')
+    }, 5000); // 30 sec technical loose 
     
-
   }
 }

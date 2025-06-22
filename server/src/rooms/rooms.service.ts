@@ -24,7 +24,7 @@ export class RoomsService {
 
   async findRoom(roomid: number) {
     const room = await this.prisma.room.findUnique({where: {id: roomid}})
-    return room || false 
+    return room 
   }
 
   async findAllRooms() {
