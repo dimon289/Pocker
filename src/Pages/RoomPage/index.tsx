@@ -48,7 +48,7 @@ type ClientToServerEvents = {
   joinRoom: (data: { roomId: string; userId: string }) => void;
   joinTable: ( userId:number)=>void;
   myStep: ( currentBet:number)=>void;
-  onmyStep: ( balancing: boolean)=>void;
+  onMyStep: ( balancing: boolean)=>void;
 };
 
 const RoomPage: React.FC = () => {
@@ -190,7 +190,7 @@ const RoomPage: React.FC = () => {
   }
   const onMyBet = async(balancing:boolean, bet:Number)=>{
     if (socket) {
-      socket.emit('onmyStep', balancing );
+      socket.emit('onMyStep', balancing );
       if (bet !== 0){
         setMessages(prevMessages => [...prevMessages,'зроблена ставка ' + bet ]);
         
