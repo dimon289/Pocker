@@ -392,7 +392,7 @@ export class RoomsGateway implements OnGatewayConnection {
           });
           resolve(Step); 
         }, 30000); // 30 sec technical loose 
-
+        
         socket.emit('makeYourStep', {currMaxBet: Math.round(currMaxBet*100)/100, currMinBet: Math.round(currMinBet*100)/100})
         socket.removeAllListeners('myStep');
         socket.on('onMyStep', async (balancing: boolean) => {
@@ -439,6 +439,7 @@ export class RoomsGateway implements OnGatewayConnection {
             lastStep = Step
         }else
           lastStep = Step
+        socket.emit('yourBalance', {balance: maxBet-Math.round(Number(Step.bet)*100)/100})
         this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep: Step, bank: poker.bank});
         console.warn(Step)
       });
