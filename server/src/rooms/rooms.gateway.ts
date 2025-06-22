@@ -94,60 +94,63 @@ export class RoomsGateway implements OnGatewayConnection {
 
   @SubscribeMessage('joinTable')
   async handleJoinTable(client: Socket, userId: number) {
-    const allPlayingUsers:number[] = []
-    this.RoomPlayersMap.forEach(room => {
-      room.forEach(player => {
-        allPlayingUsers.push(player.userid)
+    if(Number((await this.usersService.findId(String(userId)))?.mybalance)>0.05){
+      const allPlayingUsers:number[] = []
+      this.RoomPlayersMap.forEach(room => {
+        room.forEach(player => {
+          allPlayingUsers.push(player.userid)
+        })
+      });
+      if(allPlayingUsers.includes(userId)){
+        return client.emit('you already playing')
+      }
+      
+      const roomId = client.data.roomId
+      let player = await this.playersService.create({
+        userid: userId,
+        cards: [],
+        roomid: roomId,
       })
-    });
-    if(allPlayingUsers.includes(userId)){
-      return client.emit('you already playing')
-    }
-    
-    const roomId = client.data.roomId
-    let player = await this.playersService.create({
-      userid: userId,
-      cards: [],
-      roomid: roomId,
-    })
-    let roomPlayers = this.RoomPlayersMap.get(roomId)
-    
-    if(roomPlayers){
-      if (roomPlayers.length >= 6)
-        client.emit("TableFull")
-      else
-        roomPlayers.push(player)
+      let roomPlayers = this.RoomPlayersMap.get(roomId)
+      
+      if(roomPlayers){
+        if (roomPlayers.length >= 6)
+          client.emit("TableFull")
+        else
+          roomPlayers.push(player)
+          this.RoomPlayersMap.set(roomId, roomPlayers)
+          this.server.to(String(client.data.roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
+          
+      }
+      else{
+        roomPlayers = [player]
         this.RoomPlayersMap.set(roomId, roomPlayers)
         this.server.to(String(client.data.roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
-        
-    }
-    else{
-      roomPlayers = [player]
-      this.RoomPlayersMap.set(roomId, roomPlayers)
-      this.server.to(String(client.data.roomId)).emit("TableJoined", {player:player , roomPlayers:roomPlayers})
-    }
-    
-    if(roomPlayers.length==2){
-      this.server.to(String(roomId)).emit("prepare")
-      const timeout = setTimeout(() => {
-        
-        if(this.RoomPlayersMap.get(roomId)!.length>=2)
-          this.handleGameStart(roomId, roomPlayers)
-        else{
-          clearTimeout(timeout)
-          this.server.to(String(client.data.roomId)).emit("notEnoughtPlayers")
-        }
-      }, 5000);
-    }
+      }
+      
+      if(roomPlayers.length==2){
+        this.server.to(String(roomId)).emit("prepare")
+        const timeout = setTimeout(() => {
+          
+          if(this.RoomPlayersMap.get(roomId)!.length>=2)
+            this.handleGameStart(roomId, roomPlayers)
+          else{
+            clearTimeout(timeout)
+            this.server.to(String(client.data.roomId)).emit("notEnoughtPlayers")
+          }
+        }, 5000);
+      }
 
-    client.on('leaveTable', (client: Socket)=>{
-      this.server.to(String(client.data.roomId)).emit('gameIsStartingIn5Seconds')
-      let roomPlayers = this.RoomPlayersMap.get(client.data.roomId)!
-      roomPlayers = roomPlayers.filter((player)=>player.userid!==userId)
-      this.RoomPlayersMap.set(client.data.roomId, roomPlayers)
-      this.server.to(String(client.data.roomId)).emit('userLeavedTable', {roomPlayers:roomPlayers})
-    })
-    
+      client.on('leaveTable', (client: Socket)=>{
+        this.server.to(String(client.data.roomId)).emit('gameIsStartingIn5Seconds')
+        let roomPlayers = this.RoomPlayersMap.get(client.data.roomId)!
+        roomPlayers = roomPlayers.filter((player)=>player.userid!==userId)
+        this.RoomPlayersMap.set(client.data.roomId, roomPlayers)
+        this.server.to(String(client.data.roomId)).emit('userLeavedTable', {roomPlayers:roomPlayers})
+      })
+    }else{
+      client.emit("tableConnectionError",{reason:"You must have balance > 0.05"})
+    }
   }
 
 
@@ -286,6 +289,7 @@ export class RoomsGateway implements OnGatewayConnection {
             maxbet: maxBet,
             steptype: StepTypeEnum.Fold,
           });}
+          player.status = false
           resolve(Step); 
         }, 30000); // 30 сек
         
