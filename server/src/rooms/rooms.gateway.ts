@@ -162,12 +162,6 @@ export class RoomsGateway implements OnGatewayConnection {
     }
   }
 
-
-  @SubscribeMessage('balanceUp')
-  async handleBalanceUp(client: Socket){
-    const user = await this.prisma.users.update({where:{id: client.data.userId}, data:{mybalance: 100}})
-  }
-
   async handleGameStart(roomId: number, roomPlayers: players[]){
     console.warn("start")
     this.server.to(String(roomId)).emit("gameStarted", {roomPlayers})
@@ -205,11 +199,6 @@ export class RoomsGateway implements OnGatewayConnection {
     }
 
     this.handlePreflop( roomId, poker, roomPlayers)
-  }
-
-
-  async handleFold(playerId: number){
-    this.playersService.updateStatus(playerId, false)
   }
 
   stepTypeDefine(lastStep: step|undefined, currBet:number, Bet: number, balance: number){
@@ -465,31 +454,40 @@ export class RoomsGateway implements OnGatewayConnection {
       if(!player.status) continue;// skip if player is loose or fold
         i+=1
     }
-    if (i > 1)
+    if (i > 1){
       lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
-    this.server.to(String(roomId)).emit('preFlopEND');
+    }
     await this.handleFlop(roomId, poker, roomPlayers, lastStep)
   }
 
   async handleFlop(roomId: number, poker: poker, roomPlayers: players[], lastStep: step | undefined){
     this.RoomGamestatusMap.set(roomId, 'Flop')
     this.server.to(String(roomId)).emit("FlopStarted", {cards: [poker.cards[0],poker.cards[1],poker.cards[2]]})
-    lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
-    console.warn('Flop betCirle End')
-    lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
-    console.warn('Flop balancingCircle End')
+    let i = 0
+    for (const player of roomPlayers) {
+      if(!player.status) continue;// skip if player is loose or fold
+        i+=1
+    }
+    if (i > 1){
+      lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
+      lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
+    }
     this.server.to(String(roomId)).emit('FlopEND');
     await this.handleTurn(roomId, poker, roomPlayers, lastStep)
   }
 
   async handleTurn(roomId: number, poker: poker, roomPlayers: players[], lastStep){
     this.RoomGamestatusMap.set(roomId, 'Turn')
-    console.warn(lastStep)
     this.server.to(String(roomId)).emit("TurnStarted", {cards: [poker.cards[3]]})
-    lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
-    console.warn('Turn betCirle End')
-    lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
-    console.warn('Turn balancingCircle End')
+    let i = 0
+    for (const player of roomPlayers) {
+      if(!player.status) continue;// skip if player is loose or fold
+        i+=1
+    }
+    if (i > 1){
+      lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
+      lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
+    }
     this.server.to(String(roomId)).emit('TurnEND');
     await this.handleRiver(roomId, poker, roomPlayers, lastStep)
   }  
@@ -498,10 +496,15 @@ export class RoomsGateway implements OnGatewayConnection {
     this.RoomGamestatusMap.set(roomId, 'River')
     console.warn(lastStep)
     this.server.to(String(roomId)).emit("RiverStarted", {cards: [poker.cards[4]]})
-    lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
-    console.warn('River betCirle End')
-    lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
-    console.warn('River balancingCircle End')
+    let i = 0
+    for (const player of roomPlayers) {
+      if(!player.status) continue;// skip if player is loose or fold
+        i+=1
+    }
+    if (i > 1){
+      lastStep = await this.betCircle(roomId, poker, roomPlayers, lastStep)
+      lastStep = await this.balancingCircle(roomId, poker, roomPlayers, lastStep)
+    }
     this.server.to(String(roomId)).emit('RiverEND');
     await this.handleShowdown(roomId, poker, roomPlayers, lastStep)
   } 
@@ -519,7 +522,7 @@ export class RoomsGateway implements OnGatewayConnection {
           return {combination: 'fleshRoyale', value: 1}
       }
       i-=1
-      const streetFlash: string[][][] =
+      const straightFlash: string[][][] =
         [[['♥9','♥1','♥J','♥Q','♥K'],['♦9','♦1','♦J','♦Q','♦K'],['♠9','♠1','♠J','♠Q','♠K'],['♣9','♣1','♣J','♣Q','♣K']],
          [['♥8','♥9','♥1','♥J','♥Q'],['♦8','♦9','♦1','♦J','♦Q'],['♠8','♠9','♠1','♠J','♠Q'],['♣8','♣9','♣1','♣J','♣Q']],
          [['♥7','♥8','♥9','♥1','♥J'],['♦7','♦8','♦9','♦1','♦J'],['♠7','♠8','♠9','♠1','♠J'],['♣7','♣8','♣9','♣1','♣J']],
@@ -531,11 +534,11 @@ export class RoomsGateway implements OnGatewayConnection {
          [['♥2','♥3','♥4','♥5','♥6'],['♦2','♦3','♦4','♦5','♦6'],['♠2','♠3','♠4','♠5','♠6'],['♣2','♣3','♣4','♣5','♣6']],
          [['♥A','♥2','♥3','♥4','♥5'],['♦A','♦2','♦3','♦4','♦5'],['♠A','♠2','♠3','♠4','♠5'],['♣A','♣2','♣3','♣4','♣5']]]
 
-      for(let group of streetFlash){
+      for(let group of straightFlash){
         for(let combination of group){
           const isMatch = combination.every(card => cards.includes(card));
           if(isMatch) 
-            return {combination: 'streetFlush', value: i}
+            return {combination: 'straightFlush', value: i}
         }
         i-=1
       }
@@ -618,7 +621,7 @@ export class RoomsGateway implements OnGatewayConnection {
         return{combination: 'fullHouse',value: sameRanks[0][0]*15+sameRanks[1][0]}
       }
         
-      const street: string[][][] =
+      const straight: string[][][] =
         [[['A','1','J','Q','K']],
          [['9','1','J','Q','K']],
          [['8','9','1','J','Q']],
@@ -630,11 +633,11 @@ export class RoomsGateway implements OnGatewayConnection {
          [['2','3','4','5','6']],
          [['A','2','3','4','5']]]
 
-      for(let group of street){
+      for(let group of straight){
         for(let combination of group){
           const isMatch = combination.every(card => cards.includes(card));
           if(isMatch) 
-            return {combination: 'street', value: i}
+            return {combination: 'straight', value: i}
         }
         i-=1
       }
@@ -670,11 +673,11 @@ export class RoomsGateway implements OnGatewayConnection {
     }
     console.warn('PlayerCombinationMap: '+PlayerCombinationMap)
     let fleshRoyales: players[] = []
-    let streetFlushes: players[] = []
+    let straightFlushes: players[] = []
     let kares: players[] = []
     let fullHouses: players[] = []
     let flushes: players[] = []
-    let streets: players[] = []
+    let straights: players[] = []
     let sets: players[] = []
     let twoPairs: players[] = []
     let pairs: players[] = []
@@ -683,16 +686,16 @@ export class RoomsGateway implements OnGatewayConnection {
       if(PlayerCombinationMap.get(key)?.combination == 'fleshRoyale'){
         fleshRoyales.push(key)
         return
-      }else if(PlayerCombinationMap.get(key)?.combination == 'streetFlush'){
-        streetFlushes.push(key)
+      }else if(PlayerCombinationMap.get(key)?.combination == 'straightFlush'){
+        straightFlushes.push(key)
       }else if(PlayerCombinationMap.get(key)?.combination == 'kare'){
         kares.push(key)
       }else if(PlayerCombinationMap.get(key)?.combination == 'fullHouse'){
         fullHouses.push(key)
       }else if(PlayerCombinationMap.get(key)?.combination == 'flush'){
         flushes.push(key)
-      }else if(PlayerCombinationMap.get(key)?.combination == 'street'){
-        streets.push(key)
+      }else if(PlayerCombinationMap.get(key)?.combination == 'straight'){
+        straights.push(key)
       }else if(PlayerCombinationMap.get(key)?.combination == 'set'){
         sets.push(key)
       }else if(PlayerCombinationMap.get(key)?.combination == 'twoPairs'){
@@ -705,10 +708,10 @@ export class RoomsGateway implements OnGatewayConnection {
     };
     if(fleshRoyales.length>=1){
       winner = fleshRoyales[0]
-    }else if(streetFlushes.length>=1){
-      winner=streetFlushes[0]
-       if(streetFlushes.length>1){
-        streetFlushes.map(player=>{
+    }else if(straightFlushes.length>=1){
+      winner=straightFlushes[0]
+       if(straightFlushes.length>1){
+        straightFlushes.map(player=>{
           if (player!=winner) {
             if(PlayerCombinationMap.get(player)!.value>PlayerCombinationMap.get(winner)!.value)
               winner = player
@@ -760,10 +763,10 @@ export class RoomsGateway implements OnGatewayConnection {
           
         })
       }
-    }else if(streets.length>=1){
-      winner=streets[0]
-       if(streets.length>1){
-        streets.map(player=>{
+    }else if(straights.length>=1){
+      winner=straights[0]
+       if(straights.length>1){
+        straights.map(player=>{
           if (player!=winner) {
             if(PlayerCombinationMap.get(player)!.value>PlayerCombinationMap.get(winner)!.value)
               winner = player
