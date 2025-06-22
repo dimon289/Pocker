@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import {  useSelector } from 'react-redux';
+import {  useSelector, useDispatch } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import { RootState } from "../../Store";
 import { io, Socket } from 'socket.io-client';
+import { setBalance } from '../../Slices/userSlice'
 import axios from 'axios';
 
 const apiUrl = import.meta.env.VITE_API_URL;
@@ -52,8 +53,10 @@ type ClientToServerEvents = {
 };
 
 const RoomPage: React.FC = () => {
+  const dispatch = useDispatch();
   const { roomId } = useParams();
   const [usersId, setUsersId] = useState<string[]>()
+  const balance = useSelector((state:RootState) => state.user.balance)
   const userId = useSelector((state:RootState) => state.user.userId)
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -175,6 +178,7 @@ const RoomPage: React.FC = () => {
   const Bet= () => {
     if (socket) {
       socket.emit('myStep', Number(myBet) );
+      dispatch(setBalance(balance - Number(myBet)));
       setMessages(prevMessages => [...prevMessages,'зроблена ставка ' + myBet ]);
       setIsYourTurn(false)
     }
