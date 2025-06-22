@@ -271,43 +271,43 @@ const RoomPage: React.FC = () => {
     }
   }, [players, userId]);
 
-      function getCardUnicode(card: string): string {
-      const suit = card[0]; // '♦'
-      const value = card.slice(1); // '1'
+  function getCardUnicode(card: string): string {
+  const suit = card[0]; // '♦'
+  const value = card.slice(1); // '1'
 
-      // Мапа мастей до base Unicode значень
-      const suitBase: { [key: string]: number } = {
-        '♠': 0x1F0A0, // Spades
-        '♥': 0x1F0B0, // Hearts
-        '♦': 0x1F0C0, // Diamonds
-        '♣': 0x1F0D0, // Clubs
-      };
+  // Мапа мастей до base Unicode значень
+  const suitBase: { [key: string]: number } = {
+    '♠': 0x1F0A0, // Spades
+    '♥': 0x1F0B0, // Hearts
+    '♦': 0x1F0C0, // Diamonds
+    '♣': 0x1F0D0, // Clubs
+  };
 
-      // Мапа значень (у Unicode деякі значення пропущені)
-      const valueMap: { [key: string]: number } = {
-        'A': 0x1,   // Туз
-        '2': 0x2,
-        '3': 0x3,
-        '4': 0x4,
-        '5': 0x5,
-        '6': 0x6,
-        '7': 0x7,
-        '8': 0x8,
-        '9': 0x9,
-        '1': 0xA,
-        'J': 0xB,  // Валет
-        'Q': 0xD,  // Дама (C пропущено)
-        'K': 0xE,  // Король
-      };
+  // Мапа значень (у Unicode деякі значення пропущені)
+  const valueMap: { [key: string]: number } = {
+    'A': 0x1,   // Туз
+    '2': 0x2,
+    '3': 0x3,
+    '4': 0x4,
+    '5': 0x5,
+    '6': 0x6,
+    '7': 0x7,
+    '8': 0x8,
+    '9': 0x9,
+    '1': 0xA,
+    'J': 0xB,  // Валет
+    'Q': 0xD,  // Дама (C пропущено)
+    'K': 0xE,  // Король
+  };
 
-      const base = suitBase[suit];
-      const code = valueMap[value];
+  const base = suitBase[suit];
+  const code = valueMap[value];
 
-      if (!base || !code) return '🂠'; // невідома карта
+  if (!base || !code) return '🂠'; // невідома карта
 
-      // Отримаємо символ карти
-      return String.fromCodePoint(base + code);
-    }
+  // Отримаємо символ карти
+  return String.fromCodePoint(base + code);
+  }
 
 
   
@@ -319,11 +319,12 @@ const RoomPage: React.FC = () => {
       <div className="relative w-[80vw] h-[80vh] bg-green-900 border-[10px] border-yellow-400 rounded-full flex items-center justify-center shadow-2xl">
 
         {/* Community Cards */}
-        <div className="flex gap-6 text-6xl z-10">
-          {communityCards.map((card, index) => (
-            <span key={index}>{getCardUnicode(card)}</span>
-          ))} 
-        </div>
+      <div className="flex gap-3 sm:gap-4 md:gap-5 lg:gap-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl z-10 flex-wrap justify-center">
+        {communityCards.map((card, index) => (
+          <span key={index}>{getCardUnicode(card)}</span>
+        ))}
+      </div>
+
 
         {/* Pot */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-16 flex flex-col items-center text-white">
