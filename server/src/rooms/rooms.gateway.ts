@@ -11,8 +11,9 @@ import { RoomsService } from './rooms.service';
 import { error, table } from 'console';
 import { first } from 'rxjs';
 import e from 'express';
+import { use } from 'passport';
 
-@WebSocketGateway({ namespace: '/rooms', cors: { origin: 'http://142.93.175.150', credentials: true } })
+@WebSocketGateway({ namespace: '/rooms', cors: { origin: 'http://localhost:5173', credentials: true } })
 @Injectable()
 export class RoomsGateway implements OnGatewayConnection {
   @WebSocketServer()
@@ -200,12 +201,10 @@ export class RoomsGateway implements OnGatewayConnection {
     this.playersService.updateStatus(playerId, false)
   }
 
-  stepTypeDefine(lastStep: step|undefined, currBet:number, Bet: number, balance: number){
-    // console.warn('lastStep.steptype: '+lastStep?.steptype + ' lastStep.bet: ' + lastStep?.bet + ' currBet: '+currBet+' Bet:'+Bet+' balance: '+balance)
+  stepTypeDefine(lastStep: step|undefined, Bet: number, balance: number){
     if(Bet<0){
       return StepTypeEnum.Fold
     }
-    console.warn(lastStep)
     if (!lastStep)
       return StepTypeEnum.First;
 
@@ -215,7 +214,7 @@ export class RoomsGateway implements OnGatewayConnection {
 
     if(lastStep.steptype === StepTypeEnum.Check && lastBet == Bet)
       return StepTypeEnum.Check;
-    // console.warn('lastStep.steptype === StepTypeEnum.First: ' + (lastStep.steptype === StepTypeEnum.First) + ' Bet === Number(lastStep.bet): '+ (Bet === Number(lastStep.bet)))
+    
     if ((lastStep.steptype === StepTypeEnum.Raise && Bet === lastBet)||
         (lastStep.steptype === StepTypeEnum.ReRaise&&Bet === lastBet)||
         (lastStep.steptype === StepTypeEnum.Allin && Bet === lastBet)||
@@ -240,28 +239,13 @@ export class RoomsGateway implements OnGatewayConnection {
       const user = await this.usersService.finByPlayer(player)
       
       const maxBet = Math.round(Number(user!.mybalance)*100)/100
+      const lastBet = Math.round(Number(lastStep!.bet)*100)/100
       const prewStep = await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id)
-      let lastBet:number, prewBet: number
-      let biggestBet = (await this.stepService.findBiggestBet(poker.id))
-      let currMaxBet: number, currMinBet: number
-        
-      if(prewStep){
-        prewBet = Math.round(Number(prewStep.bet)*100)/100
-        lastBet = Math.round(Number(lastStep!.bet)*100)/100
-        currMaxBet = maxBet-prewBet
-        currMinBet = (biggestBet - prewBet)
-      }
-      else{
-        currMaxBet = maxBet
-        currMinBet = biggestBet 
-      }
-      if(biggestBet){
-        if (biggestBet>currMaxBet) 
-          currMinBet = currMaxBet          
-      }else
-        currMinBet = 0.05
-      
-
+      let minBet: number
+      if(lastBet>maxBet)
+        minBet = maxBet
+      else
+        minBet = lastBet
 
       this.server.to(String(roomId)).emit('playerTurn', {playerId: player.id});
 
@@ -286,7 +270,7 @@ export class RoomsGateway implements OnGatewayConnection {
           Step = await this.stepService.create({
             pockerid: poker.id,
             playerid: player.id,
-            bet: prewBet,
+            bet: Math.round(Number(prewStep.bet)*100)/100,
             maxbet: maxBet,
             steptype: StepTypeEnum.Fold,
           });}
@@ -294,25 +278,19 @@ export class RoomsGateway implements OnGatewayConnection {
         }, 30000); // 30 сек
         
         
-        socket.emit('makeYourStep', {currMaxBet: Math.round(currMaxBet*100)/100, currMinBet: Math.round(currMinBet*100)/100})
+        socket.emit('makeYourStep', {maxBet: Math.round(maxBet*100)/100, minBet: Math.round(minBet*100)/100})
         socket.removeAllListeners('myStep');
-        socket.on('myStep', async (currentBet: number) => {
-          currentBet = Math.round(currentBet*100)/100
-          let bet: number = currentBet;
+        socket.on('myStep', async (bet: number) => {
+          bet = Math.round(bet*100)/100
           
-          if (prewStep)
-            bet += prewBet;
           if (bet > maxBet)
             bet = maxBet;
-          if (bet < 0){
+          if (bet < lastBet && lastBet<maxBet){
             bet = 0
             player.status = false;
           }
-          if(currentBet<0){
-            bet = -1
-          }
           bet = Math.round(bet*100)/100
-          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep,currentBet, bet, maxBet);
+          const steptype: StepTypeEnum = this.stepTypeDefine(lastStep, bet, maxBet);
 
           
 
@@ -329,16 +307,19 @@ export class RoomsGateway implements OnGatewayConnection {
             steptype: steptype,
           });
           Step
-          poker.bank += currentBet;
+          poker.bank += bet;
 
           if (Step.steptype === StepTypeEnum.Fold||Step.steptype ===StepTypeEnum.Allin)
             player.status = false; 
           resolve(Step)
         });
       }).then(()=>{
-        poker.stepsid.push(Step!.id)
+        this.usersService.updateUser(user!.email,{
+          mybalance: maxBet - Number(Step.bet)
+        })
+        poker.stepsid.push(Step.id)
         if (lastStep) {
-          if(biggestBet<Number(Step.bet))
+          if(lastBet<Number(Step.bet))
             lastStep = Step
         }else
           lastStep = Step
@@ -446,7 +427,6 @@ export class RoomsGateway implements OnGatewayConnection {
         }else
           lastStep = Step
         this.server.to(String(socket.data.roomId)).emit('stepDone', {lastStep: Step, bank: poker.bank});
-        console.warn(Step)
       });
     }
     return lastStep
@@ -500,7 +480,7 @@ export class RoomsGateway implements OnGatewayConnection {
   async handleShowdown(roomId: number, poker: poker, roomPlayers: players[], lastStep){
     const PlayerCombinationMap = new Map<players, { combination: string; value: number }>();
 
-    function handDefine(cards:string[]){
+    function handDefine(cards:string[], tableCards:string[]){
       const cardOrder = ['2', '3', '4', '5', '6', '7', '8', '9', '1', 'j', 'q', 'k', 'a'];
       const fleshRoyale: string[][] = [['♥A','♥K','♥Q','♥J','♥1'],['♦A','♦K','♦Q','♦J','♦1'],['♠A','♠K','♠Q','♠J','♠1'],['♣A','♣K','♣Q','♣J','♣1']]
       let i = 100
@@ -532,31 +512,6 @@ export class RoomsGateway implements OnGatewayConnection {
       }
 
       let allRanks: number[] = []
-      let ranks: number[] = []
-      let rank: number = 0
-      let count: number = 0
-
-      for (let index = 0; index < 3; index++) {
-        for (let card of cards) {
-          let rankChar = card.slice(1);
-          let rank = 0;
-          if (rankChar === '1') rank = 10;
-          else if (rankChar === 'J') rank = 11;
-          else if (rankChar === 'Q') rank = 12;
-          else if (rankChar === 'K') rank = 13;
-          else if (rankChar === 'A') rank = 14;
-          else rank = Number(rankChar);
-      
-          allRanks.push(rank)
-        }
-        allRanks.sort((a, b)=> b - a)
-        ranks = allRanks
-        while(ranks.length!==0){
-          let first = ranks[0]
-          ranks.filter(rank=>rank!==ranks[0])
-        }
-      }
-        
       let flush:string[] = []
       let flushCounter: string[][] = [[], [], [], []]; // 0 - ♥, 1 - ♦, 2 - ♠, 3 - ♣
 
@@ -574,48 +529,66 @@ export class RoomsGateway implements OnGatewayConnection {
         }
       });
 
-      flushCounter = flushCounter.map(flushCards => flushCards.slice().sort((a, b) => {
-        const rankA = a.slice(1).toLowerCase();
-        const rankB = b.slice(1).toLowerCase();
-        return cardOrder.indexOf(rankA) - cardOrder.indexOf(rankB);
-      }));
+      flushCounter.sort((a,b)=> b.length - a.length)
+      if (flushCounter[0].length>=5){
+        flush = flushCounter[0]
+        flush = flush.filter( card=> !tableCards.includes(card))
+        flush.map((card)=> {
+          if(card[1] === 'A')
+            allRanks.push(14)
+          else if(card[1] === 'K')
+            allRanks.push(13)
+          else if(card[1] === 'Q')
+            allRanks.push(12)
+          else if(card[1] === 'J')
+            allRanks.push(11)
+          else if(card[1] === '1')
+            allRanks.push(10)
+          else allRanks.push(Number(card[1]))
+        })
+        allRanks.sort((a,b) => b-a)
+        return {combination:'flush',value: allRanks[0] }
+      }
 
       allRanks = []
-      cards.map((card)=> {
-        if(card[1] === 'A')
-          allRanks.push(14)
-        else if(card[1] === 'K')
-          allRanks.push(13)
-        else if(card[1] === 'Q')
-          allRanks.push(12)
-        else if(card[1] === 'J')
-          allRanks.push(11)
-        else if(card[1] === '1')
-          allRanks.push(10)
-        else allRanks.push(Number(card[1]))
-      })
-      // Знайти flush серед мастей
-      flush = flushCounter.find(flushCards => flushCards.length >= 5) ?? [];
-      if (flush.length >= 5){
-        flush.map((card)=> {
-        if(card[1] === 'A')
-          allRanks.push(14)
-        else if(card[1] === 'K')
-          allRanks.push(13)
-        else if(card[1] === 'Q')
-          allRanks.push(12)
-        else if(card[1] === 'J')
-          allRanks.push(11)
-        else if(card[1] === '1')
-          allRanks.push(10)
-        else allRanks.push(Number(card[1]))
-      })
-        const sumRanks = allRanks.reduce((a, b) => a + b, 0);
-        return {combination:'flush',value: sumRanks }
-      }
-  
-    
+      let sameRanks: number[][] = []
+      let rank: number = 0
+      let pointer: number = 0
 
+      for (let card of cards) {
+        let rankChar = card.slice(1);
+        let rank = 0;
+        if (rankChar === '1') rank = 10;
+        else if (rankChar === 'J') rank = 11;
+        else if (rankChar === 'Q') rank = 12;
+        else if (rankChar === 'K') rank = 13;
+        else if (rankChar === 'A') rank = 14;
+        else rank = Number(rankChar);
+    
+        allRanks.push(rank)
+      }
+      allRanks.sort((a, b)=> b - a)
+      rank = allRanks[0]
+      allRanks.splice(0,1)
+      sameRanks.push([rank])
+      while(allRanks.length!==0){
+        if(allRanks[0]===rank)
+          sameRanks[pointer].push(rank)
+        else{
+          rank = allRanks[0]
+          sameRanks.push([rank])
+          pointer+=1
+        }
+        allRanks.splice(0,1)
+      }
+
+      sameRanks.sort((a,b)=>b.length - a.length)
+      if (sameRanks[0].length===4) 
+        return{combination: 'kare', value: sameRanks[0][0]}
+      else if (sameRanks[0].length===3 && sameRanks[1].length>2) {
+        return{combination: 'fullHouse',value: sameRanks[0][0]*15+sameRanks[1][0]}
+      }
+        
       const street: string[][][] =
         [[['A','1','J','Q','K']],
          [['9','1','J','Q','K']],
@@ -636,66 +609,16 @@ export class RoomsGateway implements OnGatewayConnection {
         }
         i-=1
       }
-      
-      // if (three){
-      //   return {
-      //     combination: 'set',
-      //     value: three // значення для порівняння фулл-хаусів
-      //   };
-      // }
-      // function findTwoPairs(cards: string[]) {
-      //   const rankMap = new Map<number, number>();
-      
-      //   for (let card of cards) {
-      //     let rankChar = card.slice(1);
-      //     let rank = 0;
-      //     if (rankChar === '1') rank = 10;
-      //     else if (rankChar === 'J') rank = 11;
-      //     else if (rankChar === 'Q') rank = 12;
-      //     else if (rankChar === 'K') rank = 13;
-      //     else if (rankChar === 'A') rank = 14;
-      //     else rank = Number(rankChar);
-      
-      //     rankMap.set(rank, (rankMap.get(rank) || 0) + 1);
-      //   }
-      
-      //   const pairs: number[] = [];
-      
-      //   // Збираємо значення рангів, які мають 2 або більше карт
-      //   for (let [rank, count] of [...rankMap.entries()].sort((a, b) => b[0] - a[0])) {
-      //     if (count >= 2) {
-      //       pairs.push(rank);
-      //       if (pairs.length === 2) break; // тільки 2 пари нас цікавлять
-      //     }
-      //   }
-      
-      //   if (pairs.length === 2) {
-      //     // Для порівняння двох пар: старша пара * 15^2 + молодша пара * 15
-      //     return {
-      //       combination: 'twoPairs',
-      //       value: pairs[0] * 15 * 15 + pairs[1] * 15,
-      //     };
-      //   }
-      
-      //   return null;
-      // }
 
-      // let isTwoPairs = findTwoPairs(cards)
-      // if(isTwoPairs){
-      //   return isTwoPairs
-      // }
+      if(sameRanks[0].length===3)
+        return{combination: 'set', value: sameRanks[0][0]}
+      else if(sameRanks[0].length===2){
+        if(sameRanks[1].length === 2)
+          return{combination: 'twoPairs', value: sameRanks[0][0]*15+sameRanks[1][0]}
+        return{combination: 'pair', value: sameRanks[0][0]}
+      }
 
-      // if (pair){
-      //   return {
-      //     combination: 'pair',
-      //     value: pair // значення для порівняння фулл-хаусів
-      //   };
-      // }
-
-      // return {
-      //   combination: 'HighestCard',
-      //   value: rankMap.entries()[0] // значення для порівняння фулл-хаусів
-      // };
+      return{combination: 'HighestCard',value: sameRanks[0][0]}
     }
     
     let winner: players = roomPlayers[0]
@@ -704,11 +627,11 @@ export class RoomsGateway implements OnGatewayConnection {
       const step = await this.stepService.findPlayerLastStepByPockerId(poker.id, player.id);
       if (step?.steptype !== StepTypeEnum.Fold) {
         const cards = poker.cards.concat(player.cards);
-        const combination = handDefine(cards);
-        // PlayerCombinationMap.set(player, combination);
+        const combination = handDefine(cards, poker.cards);
+        PlayerCombinationMap.set(player, combination);
       }
     }
-    console.warn(PlayerCombinationMap.entries())
+    console.warn('PlayerCombinationMap: '+PlayerCombinationMap)
     let fleshRoyales: players[] = []
     let streetFlushes: players[] = []
     let kares: players[] = []
@@ -719,37 +642,27 @@ export class RoomsGateway implements OnGatewayConnection {
     let twoPairs: players[] = []
     let pairs: players[] = []
     let highestCard: players[] = []
-    console.warn(PlayerCombinationMap.entries())
     for(const [key,value] of PlayerCombinationMap.entries()){
       if(PlayerCombinationMap.get(key)?.combination == 'fleshRoyale'){
         fleshRoyales.push(key)
         return
-      }
-      if(PlayerCombinationMap.get(key)?.combination == 'streetFlush'){
+      }else if(PlayerCombinationMap.get(key)?.combination == 'streetFlush'){
         streetFlushes.push(key)
-      }
-      if(PlayerCombinationMap.get(key)?.combination == 'kare'){
+      }else if(PlayerCombinationMap.get(key)?.combination == 'kare'){
         kares.push(key)
-      }
-      if(PlayerCombinationMap.get(key)?.combination == 'fullHouse'){
+      }else if(PlayerCombinationMap.get(key)?.combination == 'fullHouse'){
         fullHouses.push(key)
-      }
-      if(PlayerCombinationMap.get(key)?.combination == 'flush'){
+      }else if(PlayerCombinationMap.get(key)?.combination == 'flush'){
         flushes.push(key)
-      }
-      if(PlayerCombinationMap.get(key)?.combination == 'street'){
+      }else if(PlayerCombinationMap.get(key)?.combination == 'street'){
         streets.push(key)
-      }
-      if(PlayerCombinationMap.get(key)?.combination == 'set'){
+      }else if(PlayerCombinationMap.get(key)?.combination == 'set'){
         sets.push(key)
-      }
-      if(PlayerCombinationMap.get(key)?.combination == 'twoPairs'){
+      }else if(PlayerCombinationMap.get(key)?.combination == 'twoPairs'){
         twoPairs.push(key)
-      }
-      if(PlayerCombinationMap.get(key)?.combination == 'pair'){
+      }else if(PlayerCombinationMap.get(key)?.combination == 'pair'){
         pairs.push(key)
-      }
-      if(PlayerCombinationMap.get(key)?.combination == 'HighestCard'){
+      }else if(PlayerCombinationMap.get(key)?.combination == 'HighestCard'){
         highestCard.push(key)
       }
     };
@@ -879,5 +792,8 @@ export class RoomsGateway implements OnGatewayConnection {
     }
 
     this.server.to(String(roomId)).emit('Showdown',{winner: winner, roomPlayers: roomPlayers}); 
+
+    
+
   }
 }
